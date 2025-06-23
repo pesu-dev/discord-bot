@@ -3,6 +3,7 @@ import logging
 import discord
 from discord import Intents
 from discord.ext import commands
+from pathlib import Path
 from discord.app_commands import CommandTree
 from dotenv import load_dotenv
 
@@ -23,12 +24,18 @@ async def on_ready():
     logger.info(f"Logged in as {client.user.name} ({client.user.id})")
 
     # Load cogs
-    for root, dirs, files in os.walk("cogs"):
-        for f in files:
-            if f.endswith(".py"):
-                cog = f"{root.replace('/', '.')}.{f[:-3]}"
-                await client.load_extension(cog)
-                logger.info(f"Loaded {cog}")
+    for path in Path("cogs").rglob("*.py"):
+        if path.name == "__init__.py":
+            continue
+        elif path.name.startswith("__"):
+            continue
+
+        cog = ".".join(path.with_suffix("").parts)
+        try:
+            await client.load_extension(cog)
+            logging.getLogger("discord").info(f"Loaded {cog}")
+        except Exception as e:
+            logging.getLogger("discord").error(f"Failed to load {cog}: {e}")
 
     # Sync commands
     await client.tree.sync(guild=discord.Object(id=os.getenv("GUILD_ID")))

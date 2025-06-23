@@ -8,6 +8,7 @@ class SlashMod(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
 
+    # under work by tachyon
 
 async def setup(client: commands.Bot):
     await client.add_cog(
