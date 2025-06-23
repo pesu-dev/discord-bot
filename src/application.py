@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import discord
 from discord import Intents
@@ -20,6 +21,7 @@ client = commands.Bot(
 @client.event
 async def on_ready():
     await client.wait_until_ready()
+    client.startTime = time.time()
     logger = logging.getLogger("discord")
     logger.info(f"Logged in as {client.user.name} ({client.user.id})")
 

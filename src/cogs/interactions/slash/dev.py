@@ -85,33 +85,6 @@ class SlashDev(commands.Cog):
 
 
     #group = app_commands.Group(name="dev", description="Commands for developers")
-
-    """
-    @app_commands.command(name="crash", description="Purposely crash to test error handler")
-    async def crash(self, interaction: discord.Interaction):
-        # check if person has admin permissions or else raise permission error
-        ch = ["adminerror", "valueerror"]
-        if ch == "adminerror":
-            if interaction.user.guild_permissions.administrator:
-                raise app_commands.MissingPermissions(
-                    missing_permissions=["administrator"]
-                )        
-        elif ch == "valueerror":
-            raise ValueError("This is a value error for testing purposes.")
-    @crash.error
-    async def crash_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        # check if it was a value error
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "You do not have permission to use this command.", ephemeral=False
-            )"""
-    
-    """
-    .set(this.echo, ["echo", "e"])
-            .set(this.purge, ["purge", "p"])
-            .set(this.gitpull, ["gitpull", "pull"])
-            // .set(this.restart, ["restart"])
-            .set(this.bash, ["bash"]) these are the commands"""
     
     @staticmethod
     def is_botdev():
@@ -121,6 +94,7 @@ class SlashDev(commands.Cog):
     
     
     @app_commands.command(name="echo", description="Echoes a message to the target channel")
+    @app_commands.describe(channel="The channel to send the message to", message="The message to send")
     @is_botdev()
     async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str):
         await interaction.response.defer()
@@ -131,7 +105,7 @@ class SlashDev(commands.Cog):
     async def echo_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.followup.send(
-                "Not to you lol", ephemeral=False
+                "Not to you lol", ephemeral=True
             )
         else:
             await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
@@ -155,7 +129,7 @@ class SlashDev(commands.Cog):
                 await interaction.followup.send(f"Git pull failed:\n{e.stderr}")
         else:
             await interaction.followup.send(
-                "You are not authorised to run this command", ephemeral=False
+                "You are not authorised to run this command", ephemeral=True
             )
 
     @gitpull.error
@@ -172,7 +146,7 @@ class SlashDev(commands.Cog):
     async def eval_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.followup.send(
-                "You are not authorised to run this command", ephemeral=False
+                "You are not authorised to run this command", ephemeral=True
             )
         else:
             await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
