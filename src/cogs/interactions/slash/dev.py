@@ -69,7 +69,7 @@ class EvalModal(discord.ui.Modal, title="Eval Command"):
                 await button_interaction.message.delete()
             else:
                 await button_interaction.response.send_message(
-                    "You cannot delete this message.", ephemeral=True
+                    "You cannot delete this message", ephemeral=True
                 )
 
         view = discord.ui.View(timeout=60)

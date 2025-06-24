@@ -44,3 +44,8 @@ def build_eval_embed(input_code: str, output: str, success: bool = True) -> disc
     embed.add_field(name="📤 Output", value=f"```py\n{output}```", inline=False)
 
     return embed
+
+def has_mod_permissions(member):
+    admin_role = discord.utils.get(member.guild.roles, id=load_config_value('admin'))
+    mod_role = discord.utils.get(member.guild.roles, id=load_config_value('mod'))
+    return admin_role in member.roles or mod_role in member.roles

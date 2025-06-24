@@ -1,13 +1,69 @@
 import os
 import discord
 import utils.general as ug
-from discord import app_commands
+from discord import app_commands, Interaction, SelectOption
 from discord.ext import commands
+
+
+class RoleSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            SelectOption(label="None", value="0", description="Use this to de-select your choice in this menu"),
+            SelectOption(label="Gamer", value="778825985361051660", description="Don't ever question Minecraft logic", emoji="🎮"),
+            SelectOption(label="Coder", value="778875127257104424", description="sudo apt install system32", emoji="⌨️"),
+            SelectOption(label="Musician", value="778875199701385216", description="From Pink Floyd to Prateek Kuhad", emoji="🎸"),
+            SelectOption(label="Editor", value="782642024071168011", description="A peek behind-the-scenes", emoji="🎥"),
+            SelectOption(label="Tech", value="790106229997174786", description="Pure Linus Sex Tips", emoji="💡"),
+            SelectOption(label="Moto", value="836652197214421012", description="Stutututu", emoji="⚙️"),
+            SelectOption(label="Investors", value="936886064361144360", description="Stocks and Crypto are your friends", emoji="💸"),
+            SelectOption(label="PESU Bot Dev", value="810507351063920671", description="Contribute to developing PESU Bot", emoji="🤖"),
+            SelectOption(label="NSFW", value="778820724424704011", description="Definitely not safe for anything", emoji="👀")
+        ]
+        super().__init__(
+            placeholder="Additional Roles",
+            custom_id="add_roles_select",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction: Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        member = interaction.user
+        role_id = self.values[0]
+
+        if any(role.id == ug.load_config_value("just_joined") for role in member.roles):
+            await interaction.followup.send("You need to verify yourself first.")
+            return
+
+        if role_id == "0":
+            await interaction.followup.send("OK")
+            return
+
+        role = interaction.guild.get_role(int(role_id))
+        if not role:
+            await interaction.followup.send("Role not found")
+            return
+
+        if role in member.roles:
+            await member.remove_roles(role)
+            await interaction.followup.send(f"Role `{role.name}` was already present. Removing now...")
+        else:
+            await member.add_roles(role)
+            await interaction.followup.send(f"You now have the `{role.name}` role")
+
+
+class RoleSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(RoleSelect())
 
 
 class SlashUtils(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
+        self.client.add_view(RoleSelectView())
     
 
     """
@@ -128,10 +184,11 @@ class SlashUtils(commands.Cog):
                 )
                 
             else:   
-                common_members = set(roleObjects[0].members)
-                for role in roleObjects[1:]:
-                    common_members &= set(role.members)
+                common_members = set(roleObjects[0].members) # get the members of the first role
+                for role in roleObjects[1:]: # iterate thrrough the rest of the roles skipping the first one since we already have its members
+                    common_members &= set(role.members) # & is an intersection operator, basically the intersection you did in math class 11 set theory
                 
+                # list.extend() for sets would be set.union() or set.update() but we don't need that here
                 memberCounts = len(common_members)
 
                 roleNames = [role.name for role in roleObjects]
@@ -147,6 +204,73 @@ class SlashUtils(commands.Cog):
     async def uptime_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error)) 
     
+    
+
+    @app_commands.command(name="spotify", description="Get your current Spotify details")
+    @app_commands.describe(user="The user to get Spotify details for (default: you)")
+    async def spotify(self, interaction: discord.Interaction, user: discord.User = None):
+        await interaction.response.defer()
+        realuser = interaction.guild.get_member(user.id if user else interaction.user.id) # note to self, interactions dont recieve presence data, so fetch the user via bot cache; this what i understood so far
+
+        if realuser is None:
+            await interaction.followup.send(
+                content="User not found in this server.", ephemeral=True
+            )
+            return
+        
+        """print(realuser, type(realuser))
+        print(f"[DEBUG] user.activities = {realuser.activities}")
+        for activity in user.activities:
+            print(f"[DEBUG] Activity object: {activity}")
+            print(f"Type: {type(activity)}")
+            print(f"Attributes: {dir(activity)}")"""
+        
+        for activity in realuser.activities:
+            if isinstance(activity, discord.Spotify):
+                await interaction.followup.send(
+                    content=f"Listening to `{activity.title}` by `{activity.artist}`\nSong link: {activity.track_url}",
+                    ephemeral=False
+                )
+                return
+        await interaction.followup.send(
+            content="No spotify activity detected",
+            ephemeral=True
+        )
+
+    @spotify.error
+    async def spotify_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+    
+
+    
+    @app_commands.command(name="addroles", description="Pick up additional roles to get access to more channels")
+    @app_commands.describe(channel="The channel to send the role selection in (default: current channel)")
+    async def addroles_command(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        await interaction.response.defer()
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.followup.send(
+                content="Not to you lol", ephemeral=True
+            )
+            return
+        embe = discord.Embed(
+            title="Additional Roles",
+        description="Pick up additional roles to get access to more channels",
+        color=discord.Color.blurple(),
+        timestamp=discord.utils.utcnow())
+
+
+        channel = interaction.channel if channel is None else channel
+        view = RoleSelectView()
+        await channel.send(embed=embe, view=view)
+        await interaction.followup.send(
+            content=f"Role selection sent in {channel.mention}",
+            ephemeral=True
+        )
+    
+    @addroles_command.error
+    async def addroles_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
     
 
 
