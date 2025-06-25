@@ -271,7 +271,34 @@ class SlashUtils(commands.Cog):
     async def addroles_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
+
+    @app_commands.command(name="pride", description="Flourishes you with the pride of PESU")
+    @app_commands.describe(link="The message link to reply with the pride to")
+    async def pride(self, interaction: discord.Interaction, link: str=None):
+        await interaction.response.send_message("Pride of PESU coming your way...", ephemeral=False)
+        if link is not None:
+            try:
+                message = await interaction.channel.fetch_message(link.split("/")[-1])
+            except discord.NotFound:
+                message = None
+        else:
+            message = None
+
+        try:
+            if message is not None:
+                await message.reply("https://tenor.com/view/pes-pesuniversity-pesu-may-the-pride-of-pes-may-the-pride-of-pes-be-with-you-gif-21274060")
+            else:
+                await interaction.followup.send("https://tenor.com/view/pes-pesuniversity-pesu-may-the-pride-of-pes-may-the-pride-of-pes-be-with-you-gif-21274060")
+        except Exception as e:
+            await interaction.followup.send(
+                content=f"Failed to reply with pride: {str(e)}",
+                ephemeral=True
+            )
+            return
     
+    @pride.error
+    async def pride_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
 
 async def setup(client: commands.Bot):
