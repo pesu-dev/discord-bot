@@ -6,6 +6,7 @@ import contextlib
 import utils.general as ug
 from discord import app_commands
 from discord.ext import commands
+import asyncio
 
 
 
@@ -98,6 +99,7 @@ class SlashDev(commands.Cog):
     @is_botdev()
     async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str):
         await interaction.response.defer()
+        await asyncio.sleep(8)
         await channel.send(message)
         await interaction.followup.send(f"Message sent to {channel.mention}")
 
@@ -107,6 +109,17 @@ class SlashDev(commands.Cog):
             await interaction.followup.send(
                 "Not to you lol", ephemeral=True
             )
+        elif isinstance(error, app_commands.CommandInvokeError):
+            if isinstance(error.original, discord.Forbidden):
+                await interaction.followup.send(
+                    "I do not have permission to send messages in that channel", ephemeral=True
+                )
+            elif isinstance(error.original, discord.NotFound):
+                await interaction.followup.send(
+                    "The specified channel does not exist", ephemeral=True
+                )
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error.original))
         else:
             await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
     
