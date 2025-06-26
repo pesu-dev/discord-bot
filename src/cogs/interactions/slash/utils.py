@@ -65,38 +65,6 @@ class SlashUtils(commands.Cog):
         self.client = client
         self.client.add_view(RoleSelectView())
     
-
-    """
-    @app_commands.command(name="crash", description="Purposely crash to test error handler")
-    async def crash(self, interaction: discord.Interaction):
-        # check if person has admin permissions or else raise permission error
-        ch = ["adminerror", "valueerror"]
-        if ch == "adminerror":
-            if interaction.user.guild_permissions.administrator:
-                raise app_commands.MissingPermissions(
-                    missing_permissions=["administrator"]
-                )        
-        elif ch == "valueerror":
-            raise ValueError("This is a value error for testing purposes.")
-    @crash.error
-    async def crash_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        # check if it was a value error
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "You do not have permission to use this command.", ephemeral=False
-            )"""
-    
-    """
-    .set(this.uptime, ["uptime", "ut"])
-            .set(this.ping, ["ping", "tp"])
-            .set(this.support, ["support", "contribute"])
-            .set(this.count, ["count", "c"])
-            .set(this.snipe, ["snipe"])
-            .set(this.editsnipe, ["editsnipe"])
-            .set(this.poll, ["poll"])
-            .set(this.help, ["help", "h"])
-            .set(this.addroles, ["roles", "ar"])
-            .set(this.spotify, ["spotify"]) these are the commands"""
     
     @app_commands.command(name="ping", description="Get the bot's latency")
     async def ping(self, interaction: discord.Interaction):
@@ -184,11 +152,9 @@ class SlashUtils(commands.Cog):
                 )
                 
             else:   
-                common_members = set(roleObjects[0].members) # get the members of the first role
-                for role in roleObjects[1:]: # iterate thrrough the rest of the roles skipping the first one since we already have its members
-                    common_members &= set(role.members) # & is an intersection operator, basically the intersection you did in math class 11 set theory
-                
-                # list.extend() for sets would be set.union() or set.update() but we don't need that here
+                common_members = set(roleObjects[0].members)
+                for role in roleObjects[1:]:
+                    common_members &= set(role.members)
                 memberCounts = len(common_members)
 
                 roleNames = [role.name for role in roleObjects]
@@ -198,7 +164,6 @@ class SlashUtils(commands.Cog):
 
 
         
-    
 
     @count.error
     async def uptime_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -210,20 +175,13 @@ class SlashUtils(commands.Cog):
     @app_commands.describe(user="The user to get Spotify details for (default: you)")
     async def spotify(self, interaction: discord.Interaction, user: discord.User = None):
         await interaction.response.defer()
-        realuser = interaction.guild.get_member(user.id if user else interaction.user.id) # note to self, interactions dont recieve presence data, so fetch the user via bot cache; this what i understood so far
+        realuser = interaction.guild.get_member(user.id if user else interaction.user.id) # discord.Interaction's user object doesn't receive presence data, we will have to fetch it from bot's cache instead
 
         if realuser is None:
             await interaction.followup.send(
                 content="User not found in this server.", ephemeral=True
             )
             return
-        
-        """print(realuser, type(realuser))
-        print(f"[DEBUG] user.activities = {realuser.activities}")
-        for activity in user.activities:
-            print(f"[DEBUG] Activity object: {activity}")
-            print(f"Type: {type(activity)}")
-            print(f"Attributes: {dir(activity)}")"""
         
         for activity in realuser.activities:
             if isinstance(activity, discord.Spotify):

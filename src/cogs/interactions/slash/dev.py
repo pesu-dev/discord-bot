@@ -6,7 +6,6 @@ import contextlib
 import utils.general as ug
 from discord import app_commands
 from discord.ext import commands
-import asyncio
 
 
 
@@ -85,8 +84,6 @@ class SlashDev(commands.Cog):
         self.client = client
 
 
-    #group = app_commands.Group(name="dev", description="Commands for developers")
-    
     @staticmethod
     def is_botdev():
         def predicate(interaction: discord.Interaction) -> bool:
@@ -99,7 +96,6 @@ class SlashDev(commands.Cog):
     @is_botdev()
     async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str):
         await interaction.response.defer()
-        await asyncio.sleep(8)
         await channel.send(message)
         await interaction.followup.send(f"Message sent to {channel.mention}")
 
