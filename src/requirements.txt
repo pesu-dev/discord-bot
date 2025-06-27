@@ -1,2 +1,7 @@
 python-dotenv
 discord.py
+curl-cffi
+ua-generator
+aiohttp
+yarl
+typing-extensions

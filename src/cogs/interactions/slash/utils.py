@@ -3,6 +3,12 @@ import discord
 import utils.general as ug
 from discord import app_commands, Interaction, SelectOption
 from discord.ext import commands
+import ua_generator
+import aiohttp
+import yarl
+import json
+from typing import Optional
+
 
 
 class RoleSelect(discord.ui.Select):
@@ -63,6 +69,7 @@ class RoleSelectView(discord.ui.View):
 class SlashUtils(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
+        self.cached_data = None
         self.client.add_view(RoleSelectView())
     
     
@@ -256,6 +263,133 @@ class SlashUtils(commands.Cog):
     
     @pride.error
     async def pride_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @staticmethod
+    async def fetch_data():
+        async with aiohttp.ClientSession(headers={'User-Agent': ua_generator.generate().text, 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept': '*/*', 'Connection': 'keep-alive'}) as session:
+            async with session.get(yarl.URL('https://reddit.com/r/PESU/comments/14c1iym/.json', encoded=True)) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    x = data[0]["data"]["children"][0]["data"]["selftext"]
+                    finedata = {}
+                    y = x.split("# ")
+                    for i in y:
+                        j = i.split("\n\n")
+                        if "This post will be" in j[0]:
+                            continue
+                        #print(f"Processing Title: {j[0]}")
+                        s = j[1].split("* ")
+                        news = list(filter(None, s))
+                        for i in news:
+                            if ") or [" in i:
+                                chakdeh = i.split(") or [")
+                                for i in chakdeh:
+                                    l = i.split("](")
+                                    if l[0].startswith("["):
+                                        l[0] = l[0][1:]
+                                    if l[1].endswith(")"):
+                                        l[1] = l[1][:-1]
+                                    finedata.setdefault(j[0], []).append({l[0]: l[1]})  
+                                
+                            else:
+
+                                chakdeh = i.split("](")
+                                if chakdeh[0].startswith("["):
+                                    chakdeh[0] = chakdeh[0][1:]
+                                if chakdeh[1].endswith(")"):
+                                    chakdeh[1] = chakdeh[1][:-1]
+                                
+                                if chakdeh[1].endswith("\n"):
+                                    chakdeh[1] = chakdeh[1][:-1]
+                                finedata.setdefault(j[0], []).append({chakdeh[0]: chakdeh[1]})
+
+                    return finedata
+                else:
+                    resp = await response.text()
+                    print(f"Failed to fetch data: {response.status}, falling back to local data. {resp}")
+                    with open("faq.json", "r") as file:
+                        data = json.load(file)
+                    return data
+
+    async def get_data(self):
+        if not self.cached_data:
+            self.cached_data = await self.fetch_data()
+        return self.cached_data
+
+    @app_commands.command(name="faq", description="Read the FAQ for PESU")
+    @app_commands.describe(
+        category="Optional category of the FAQ",
+        question="Optional specific question inside the category"
+    )
+    async def faq(self, interaction: discord.Interaction, category: Optional[str] = None, question: Optional[str] = None):
+        data = await self.get_data()
+
+        if category and category not in data:
+            await interaction.response.send_message(f"Invalid category selected", ephemeral=True)
+            return
+
+        if question and not category:
+            await interaction.response.send_message("Please choose a category before selecting a question", ephemeral=True)
+            return
+        
+        if category and not question:
+            questions = []
+            for entry in data[category]:
+                for q in entry:
+                    if entry[q].endswith(")") or q.endswith("\n"):
+                        entry[q] = entry[q][:-1]
+                    questions.append(f"[{q}]({entry[q]})")
+            if questions:
+                await interaction.response.send_message("\n\n".join(questions), ephemeral=False)
+
+            else:
+                await interaction.response.send_message("No questions found in the selected category", ephemeral=True)
+            return
+
+        if question and category:
+            for entry in data[category]:
+                if question in entry:
+                    url = entry[question]
+                    if url.endswith(")") or url.endswith("\n"):
+                        url = url[:-1]
+                    await interaction.response.send_message(f"[{question}]({url})", ephemeral=False)
+                    return
+            await interaction.response.send_message("Question not found in the selected category", ephemeral=True)
+            return
+
+        await interaction.response.send_message("[Read the full FAQ](https://www.reddit.com/r/PESU/comments/14c1iym/faqs/)", ephemeral=False)
+
+    @faq.autocomplete("category")
+    async def category_autocomplete(self, interaction: discord.Interaction, current: str):
+        data = await self.get_data()
+        return [
+            app_commands.Choice(name=cat, value=cat)
+            for cat in data.keys()
+            if current.lower() in cat.lower()
+        ]
+
+    @faq.autocomplete("question")
+    async def question_autocomplete(self, interaction: discord.Interaction, current: str):
+        data = await self.get_data()
+        category = getattr(interaction.namespace, "category", None)
+
+        if not category or category not in data:
+            return [app_commands.Choice(name="⚠️ Select a category first", value="")]
+
+        questions = []
+        for entry in data[category]:
+            for q in entry:
+                if current.lower() in q.lower():
+                    questions.append(q)
+
+        return [
+            app_commands.Choice(name=q[:100], value=q[:100])
+            for q in questions[:25]
+        ]
+    
+    @faq.error
+    async def faq_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
 
