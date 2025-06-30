@@ -94,9 +94,12 @@ class SlashDev(commands.Cog):
     @app_commands.command(name="echo", description="Echoes a message to the target channel")
     @app_commands.describe(channel="The channel to send the message to", message="The message to send")
     @is_botdev()
-    async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str):
+    async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str, attachment: discord.Attachment =None):
         await interaction.response.defer()
-        await channel.send(message)
+        if not attachment:
+            await channel.send(message)
+        else:
+            await channel.send(message, file = await attachment.to_file())
         await interaction.followup.send(f"Message sent to {channel.mention}")
 
     @echo.error
