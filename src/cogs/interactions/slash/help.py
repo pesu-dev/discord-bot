@@ -153,7 +153,7 @@ class SlashHelp(commands.Cog):
 
     @help_command.error
     async def help_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+        await interaction.followup.send(embed=ug.build_unknown_error_embed(error), ephemeral=True)
 
 
 async def setup(client: commands.Bot):
