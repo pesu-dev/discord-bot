@@ -25,7 +25,7 @@ class Verification(commands.Cog):
         if not any(role.id in [config["admin"], config["mod"]] for role in interaction.user.roles):
             return await interaction.response.send_message("You are not authorised to run this command.", ephemeral=False)
         
-        verRes = verified_collection.find_one({"ID": int(user.id)})
+        verRes = verified_collection.find_one({"ID": str(user.id)})
 
         if not verRes:
             return await interaction.response.send_message("This user is not verified yet.", ephemeral=True)
@@ -51,7 +51,7 @@ class Verification(commands.Cog):
         if not any(role.id in [config["admin"], config["mod"]] for role in interaction.user.roles):
             return await interaction.response.send_message("You are not authorised to run this command.", ephemeral=False)
 
-        result = verified_collection.delete_one({"ID": int(user.id)})
+        result = verified_collection.delete_one({"ID": str(user.id)})
         if result.deleted_count == 0:
             return await interaction.response.send_message("This user was not verified in the first place.", ephemeral=True)
         
