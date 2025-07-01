@@ -10,14 +10,12 @@ class HelpEmbeds:
             discord.Embed(title="PESU Bot", description="General", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Uptime", value="`/uptime`", inline=False)
             .add_field(name="Ping", value="`/ping`", inline=False)
-            .add_field(name="Support", value="`/support`", inline=False)
-            .set_footer(text="Page 1/3"),
+            .add_field(name="Support", value="`/support`", inline=False),
 
             discord.Embed(title="PESU Bot", description="General", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Poll", value="`/spotify`", inline=False)
             .add_field(name="Count", value="`/count`", inline=False)
-            .add_field(name="Additional Roles", value="`/addroles`", inline=False)
-            .set_footer(text="Page 2/3"),
+            .add_field(name="Additional Roles", value="`/addroles`", inline=False),
 
             discord.Embed(title="PESU Bot", description="General", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Help", value="`/help`", inline=False)
@@ -28,34 +26,29 @@ class HelpEmbeds:
             discord.Embed(title="PESU Bot", description="Data", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Info", value="`/info`", inline=False)
             .add_field(name="Deverify", value="`/deverify`", inline=False)
-            .add_field(name="File", value="`/file`", inline=False)
-            .set_footer(text="Page 1/1"),
+            .add_field(name="File", value="`/file`", inline=False),
         ]
 
         self.moderation = [
             discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Kick", value="`/kick`", inline=False)
             .add_field(name="Ban", value="`/ban`", inline=False)
-            .add_field(name="Lock", value="`/lock`", inline=False)
-            .set_footer(text="Page 1/3"),
+            .add_field(name="Lock", value="`/lock`", inline=False),
 
             discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Unlock", value="`/unlock`", inline=False)
             .add_field(name="Timeout", value="`/timeout`", inline=False)
-            .add_field(name="De-Timeout", value="`/detimeout`", inline=False)
-            .set_footer(text="Page 2/3"),
+            .add_field(name="De-Timeout", value="`/detimeout`", inline=False),
 
             discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Purge", value="`/purge`", inline=False)
-            .set_footer(text="Page 3/3"),
+            .add_field(name="Purge", value="`/purge`", inline=False),
         ]
 
         self.dev = [
             discord.Embed(title="PESU Bot", description="Dev", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Echo", value="`/echo`", inline=False)
             .add_field(name="Eval", value="`/eval`", inline=False)
-            .add_field(name="Git pull", value="`/gitpull`", inline=False)
-            .set_footer(text="Page 1/1"),
+            .add_field(name="Git pull", value="`/gitpull`", inline=False),
         ]
     def get_embeds(self, category: str):
         return getattr(self, category.lower(), self.general)
@@ -76,7 +69,10 @@ class HelpView(discord.ui.View):
         self.add_item(NextButton(self))
 
     def get_embed(self):
-        return self.embeds[self.page]
+        embed = self.embeds[self.page]
+        total_pages = len(self.embeds)
+        embed.set_footer(text=f"Page {self.page + 1}/{total_pages}")
+        return embed
     
     async def on_timeout(self):
         for item in self.children:
