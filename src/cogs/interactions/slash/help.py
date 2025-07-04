@@ -138,8 +138,7 @@ class SlashHelp(commands.Cog):
         await interaction.response.defer()
 
         if any(role.id == ug.load_config_value("just_joined") for role in interaction.user.roles):
-            embed = discord.Embed(title="PESU Bot", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            embed.add_field(name="Verify", value="`/verify` [SRN/PRN]", inline=False)
+            embed = discord.Embed(title="PESU Bot", description=f"Visit <#{ug.load_config_value('welcomeChannel')}> to get verified first!", color=discord.Color.red(), timestamp=discord.utils.utcnow())
             await interaction.followup.send(embed=embed)
             return
 

@@ -11,5 +11,6 @@
     "logs": 0,
     "modlogs":0,
     "nqnlogs": 0,
+    "welcomeChannel": 1389645685153857638,
     "_comment1": "this config is currently configured for testing purposes only"
 }
