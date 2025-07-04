@@ -9,19 +9,13 @@ from discord.ext import commands
 class SlashDev(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
-
-
-    @staticmethod
-    def is_botdev():
-        def predicate(interaction: discord.Interaction) -> bool:
-            return any(role.id == ug.load_config_value("botDev") for role in interaction.user.roles)
-        return app_commands.check(predicate)
     
     # will be transitioned to mod.py later
     @app_commands.command(name="echo", description="Echoes a message to the target channel")
     @app_commands.describe(channel="The channel to send the message to", message="The message to send", attachment="An optional attachment to send with the message")
-    @is_botdev()
     async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str, attachment: discord.Attachment =None):
+        if not ug.has_mod_permissions(interaction.user):
+            return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
         await interaction.response.defer()
         if not attachment:
             await channel.send(message)
@@ -31,11 +25,7 @@ class SlashDev(commands.Cog):
 
     @echo.error
     async def echo_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.CheckFailure):
-            await interaction.followup.send(
-                "Not to you lol", ephemeral=True
-            )
-        elif isinstance(error, app_commands.CommandInvokeError):
+        if isinstance(error, app_commands.CommandInvokeError):
             if isinstance(error.original, discord.Forbidden):
                 await interaction.followup.send(
                     "I do not have permission to send messages in that channel", ephemeral=True
