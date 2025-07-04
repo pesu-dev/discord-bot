@@ -1,4 +1,5 @@
 import os
+import time
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -18,27 +19,40 @@ class SlashVerify(commands.Cog):
     @app_commands.command(name="info", description="Get verification info about a user")
     @app_commands.describe(user="User to fetch info about")
     async def info(self, interaction: discord.Interaction, user: discord.Member):
+        createdAt = user.created_at
+        unixTimestamp = int(time.mktime(createdAt.timetuple()))
+        joinedAt = user.joined_at
+        unixJoinedTimestamp = int(time.mktime(joinedAt.timetuple())) if joinedAt else None
         
-        await interaction.response.defer()
-        
-        verRes = await verified_collection.find_one({"ID": str(user.id)})
+        geninfo = f"**Name:** {user.name}\n" \
+               f"**ID:** {user.id}\n" \
+               f"**Creation:** <t:{unixTimestamp}:R>\n"
 
-        if not verRes:
-            return await interaction.followup.send("This user is not verified yet", ephemeral=True)
+        if unixJoinedTimestamp:
+            geninfo += f"**Join:** <t:{unixJoinedTimestamp}:R>\n"
 
-        batchRes = await batch_collection.find_one({"PRN": verRes["PRN"]})
+        embed = discord.Embed(title="User Info", description=geninfo, color=0x48BF91)
+        embed.set_thumbnail(url=user.display_avatar.url)
 
-        if not batchRes:
-            return await interaction.followup.send("Missing data!!!", ephemeral=True)
+        await interaction.response.send_message(embed=embed)
+        if ug.has_mod_permissions(interaction.user):
+            newEmbed = discord.Embed(title="Priviliged Info", color=0x48BF91)
+            verRes = await verified_collection.find_one({"ID": str(user.id)})
 
-        embed = discord.Embed(title="User Info", color=0x48BF91)
-        embed.add_field(name="MemberID", value=verRes["ID"], inline=True)
-        embed.add_field(name="PRN", value=batchRes["PRN"], inline=True)
-        embed.add_field(name="Stream", value=batchRes["Branch"], inline=True)
-        embed.add_field(name="Year", value=batchRes["Year"], inline=True)
-        embed.add_field(name="Campus", value=batchRes["Campus"], inline=True)
+            if not verRes:
+                newEmbed.description = "This user is not verified yet"
+                return await interaction.followup.send(embed=newEmbed, ephemeral=True)
 
-        await interaction.followup.send(embed=embed)
+            batchRes = await batch_collection.find_one({"PRN": verRes["PRN"]})
+
+            if not batchRes:
+                newEmbed.description = "Missing data!!!"
+                return await interaction.followup.send(embed=newEmbed, ephemeral=True)
+            
+            newEmbed.description = f"**PRN:** {verRes['PRN']}"
+
+            await interaction.followup.send(embed=newEmbed, ephemeral=True)
+
 
     @info.error
     async def info_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
