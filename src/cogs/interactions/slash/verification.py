@@ -2,14 +2,13 @@ import os
 import discord
 from discord import app_commands
 from discord.ext import commands
-from pymongo import MongoClient
+import motor.motor_asyncio as motor
 from utils import general as ug
 
-mongo_client = MongoClient(os.getenv("MONGO_URI"))
+mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
 db = mongo_client[os.getenv("DB_NAME")]
 verified_collection = db["verified"]
 batch_collection = db["batch"]
-
 
 
 class SlashVerify(commands.Cog):
@@ -19,17 +18,15 @@ class SlashVerify(commands.Cog):
     @app_commands.command(name="info", description="Get verification info about a user")
     @app_commands.describe(user="User to fetch info about")
     async def info(self, interaction: discord.Interaction, user: discord.Member):
-        if not ug.has_mod_permissions(interaction.user):
-            return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
         
         await interaction.response.defer()
         
-        verRes = verified_collection.find_one({"ID": str(user.id)})
+        verRes = await verified_collection.find_one({"ID": str(user.id)})
 
         if not verRes:
             return await interaction.followup.send("This user is not verified yet", ephemeral=True)
 
-        batchRes = batch_collection.find_one({"PRN": verRes["PRN"]})
+        batchRes = await batch_collection.find_one({"PRN": verRes["PRN"]})
 
         if not batchRes:
             return await interaction.followup.send("Missing data!!!", ephemeral=True)
@@ -61,7 +58,7 @@ class SlashVerify(commands.Cog):
             return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
 
         await interaction.response.defer()
-        result = verified_collection.delete_one({"ID": str(user.id)})
+        result = await verified_collection.delete_one({"ID": str(user.id)})
         if result.deleted_count == 0:
             return await interaction.followup.send("This user was not verified in the first place", ephemeral=True)
         

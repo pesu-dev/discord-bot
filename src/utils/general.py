@@ -48,5 +48,5 @@ def build_eval_embed(input_code: str, output: str, success: bool = True) -> disc
 def has_mod_permissions(member):
     admin_role = discord.utils.get(member.guild.roles, id=load_config_value('admin'))
     mod_role = discord.utils.get(member.guild.roles, id=load_config_value('mod'))
-    botdev_role = discord.utils.get(member.guild.roles, id=load_config_value('botdev'))
+    botdev_role = discord.utils.get(member.guild.roles, id=load_config_value('botDev'))
     return admin_role in member.roles or mod_role in member.roles or botdev_role in member.roles
