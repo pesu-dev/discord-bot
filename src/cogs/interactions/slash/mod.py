@@ -11,6 +11,4 @@ class SlashMod(commands.Cog):
     # under work by tachyon
 
 async def setup(client: commands.Bot):
-    await client.add_cog(
-        SlashMod(client), guild=discord.Object(id=os.getenv("GUILD_ID"))
-    )
+    await client.add_cog(SlashMod(client), guild=discord.Object(id=client.config['guild_id']))
