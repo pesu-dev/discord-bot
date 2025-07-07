@@ -5,12 +5,13 @@
     "verified": 1386815940791894198,
     "just_joined": 1389256789513470042,
     "superUsers": [723377619420184668, 543143780925177857],
-    "muted": 0,
+    "muted": 1386947661084495913,
     "everyone": 0,
 
     "logs": 0,
-    "modlogs":0,
+    "modlogs":1386770381733630012,
     "nqnlogs": 0,
     "welcomeChannel": 1389645685153857638,
+    "lobbyChannel": 1368604372581486634,
     "_comment1": "this config is currently configured for testing purposes only"
 }
