@@ -150,6 +150,62 @@ class SlashMod(commands.Cog):
         else:
             print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
 
+
+    @app_commands.command(name="echo", description="Echoes a message to the target channel")
+    @app_commands.describe(channel="The channel to send the message to", message="The message to send", attachment="An optional attachment to send with the message")
+    async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str, attachment: discord.Attachment =None):
+        await interaction.response.defer(ephemeral=True)
+        if not ug.has_mod_permissions(interaction.user):
+            return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
+        if not attachment:
+            await channel.send(message)
+        else:
+            await channel.send(message, file = await attachment.to_file())
+        await interaction.followup.send(f"Message sent to {channel.mention}")
+
+    @echo.error
+    async def echo_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            if isinstance(error.original, discord.Forbidden):
+                await interaction.followup.send(
+                    "I do not have permission to send messages in that channel", ephemeral=True
+                )
+            elif isinstance(error.original, discord.NotFound):
+                await interaction.followup.send(
+                    "The specified channel does not exist", ephemeral=True
+                )
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error.original))
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+    
+    @app_commands.command(name="changenick", description="Change someone else's nickname")
+    @app_commands.describe(member="The member whose name you want to change", new_nick="The new nickname you wanna give this user")
+    async def changenick(self, interaction: discord.Interaction, member: discord.Member, new_nick: str):
+        await interaction.response.defer(ephemeral=True)
+        if not ug.has_mod_permissions(interaction.user):
+            return await interaction.followup.send(f"Awwww sooo cutely you're trying to change {member.display_name}'s nickname", ephemeral=True)
+        newNick = new_nick.strip()
+        await member.edit(nick=newNick)
+        await interaction.followup.send(f"Nicely changed {member.display_name}'s name to {newNick}", ephemeral=True)
+
+    @changenick.error
+    async def changenick_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to change the name of?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to change this user's nickname at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
     @kick.error
     async def kick_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandInvokeError):
@@ -353,9 +409,9 @@ class SlashMod(commands.Cog):
             await interaction.response.send_message("Please specify a number between 1 and 100", ephemeral=True)
             return
             
-        await interaction.response.defer(ephemeral=False)
+        await interaction.response.defer(ephemeral=True)
         deleted = await interaction.channel.purge(limit=amount)
-        await interaction.followup.send(f"Deleted last {len(deleted)} messages", ephemeral=False)
+        await interaction.followup.send(f"Deleted last {len(deleted)} messages")
         embed = discord.Embed(
             title="Messages Purged",
             color=discord.Color.green(),

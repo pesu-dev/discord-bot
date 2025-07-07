@@ -244,26 +244,27 @@ class SlashUtils(commands.Cog):
         if link is not None:
             try:
                 message = await interaction.channel.fetch_message(link.split("/")[-1])
-            except discord.NotFound:
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                 message = None
         else:
             message = None
 
-        try:
-            if message is not None:
-                await message.reply("https://tenor.com/view/pes-pesuniversity-pesu-may-the-pride-of-pes-may-the-pride-of-pes-be-with-you-gif-21274060")
-            else:
-                await interaction.followup.send("https://tenor.com/view/pes-pesuniversity-pesu-may-the-pride-of-pes-may-the-pride-of-pes-be-with-you-gif-21274060")
-        except Exception as e:
-            await interaction.followup.send(
-                content=f"Failed to reply with pride: {str(e)}",
-                ephemeral=True
-            )
-            return
+        if message is not None:
+            await message.reply("https://tenor.com/view/pes-pesuniversity-pesu-may-the-pride-of-pes-may-the-pride-of-pes-be-with-you-gif-21274060")
+        else:
+            await interaction.followup.send("https://tenor.com/view/pes-pesuniversity-pesu-may-the-pride-of-pes-may-the-pride-of-pes-be-with-you-gif-21274060")
     
     @pride.error
     async def pride_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+        if isinstance(error, app_commands.CommandInvokeError):
+            if isinstance(error.original, discord.NotFound):
+                await interaction.followup.send("The specified message does not exist or is not in the channel", ephemeral=True)
+            elif isinstance(error.original, discord.Forbidden):
+                await interaction.followup.send("I do not have permission to reply to that message", ephemeral=True)
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
     @staticmethod
     async def fetch_data():
