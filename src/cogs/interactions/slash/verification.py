@@ -11,6 +11,7 @@ db = mongo_client[os.getenv("DB_NAME")]
 verified_collection = db["verified"]
 batch_collection = db["batch"]
 
+
 class SlashVerify(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
