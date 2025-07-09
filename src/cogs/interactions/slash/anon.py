@@ -119,7 +119,7 @@ class SlashAnon(commands.Cog):
         
 
     @app_commands.command(name="bananon", description="Ban a user from using anon based on message link")
-    @app_commands.describe(link="The message link you want to use to ban",  reason="Reason for ban")
+    @app_commands.describe(link="The message link you want to use to ban",  time="Duration of the ban", reason="Reason for ban")
     async def ban_anon(self, interaction: discord.Interaction, link: str, time: str, reason: Optional[str] = "No reason provided"):
         await interaction.response.defer(ephemeral=True)
         if not ug.has_mod_permissions(interaction.user):
@@ -238,7 +238,7 @@ class SlashAnon(commands.Cog):
             return await interaction.followup.send("You are not authorised to use this", ephemeral=True)
 
     @app_commands.command(name="userbananon", description="Manually ban a user from anon messaging")
-    @app_commands.describe(member="The member to ban", reason="Reason for ban")
+    @app_commands.describe(member="The member to ban", time="Duration of the ban", reason="Reason for ban")
     async def user_ban_anon(self, interaction: discord.Interaction, member: discord.Member, time: str, reason: Optional[str] = "No reason provided"):
         await interaction.response.defer(ephemeral=True)
 
