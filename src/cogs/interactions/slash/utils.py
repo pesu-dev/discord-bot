@@ -123,7 +123,7 @@ class SlashUtils(commands.Cog):
         return len(role.members)
 
     
-    @app_commands.command(name="count", description="Get the number of servers the bot is in")
+    @app_commands.command(name="count", description="Get the server stats or count members in specific roles")
     @app_commands.describe(rolelist="List of roles to count members for, separated by &")
     async def count(self, interaction: discord.Interaction, rolelist: str = None):
         await interaction.response.defer()
