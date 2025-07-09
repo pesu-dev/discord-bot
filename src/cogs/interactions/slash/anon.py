@@ -2,16 +2,15 @@ import os
 import discord
 import datetime
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import motor.motor_asyncio as motor
 from utils import general as ug
 from typing import Optional
 
-mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
+mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"), tz_aware=True)
 db = mongo_client[os.getenv("DB_NAME")]
-verified_collection = db["verified"]
-batch_collection = db["batch"]
-anonbans_collection = db["anonbans"]
+link_collection = db["Link"]
+anonban_collection = db["AnonBan"]
 
 
 
@@ -25,14 +24,50 @@ class SlashAnon(commands.Cog):
         )
         self.client.tree.add_command(self.ctx_menu)
 
+        if not self.check_anon_bans_loop.is_running():
+            self.check_anon_bans_loop.start()
+
+    def parse_time(self, time_str: str) -> int:
+        time_str = time_str.lower().strip()
+        try:
+            if time_str.endswith('d'):
+                return int(time_str[:-1]) * 24 * 60 * 60
+            elif time_str.endswith('h'):
+                return int(time_str[:-1]) * 60 * 60
+            elif time_str.endswith('m'):
+                return int(time_str[:-1]) * 60
+            elif time_str.endswith('s'):
+                return int(time_str[:-1])
+            else:
+                return int(time_str)
+        except ValueError:
+            raise ValueError("Invalid time format")
+
+
+    @tasks.loop(seconds=30)
+    async def check_anon_bans_loop(self):
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        async for ban in anonban_collection.find({"expiresAt": {"$lt": current_time}, "active": True}):
+            await anonban_collection.update_one({"_id": ban["_id"]}, {"$set": {"active": False}})
+            user = await self.client.fetch_user(ban["userId"])
+            if user:
+                try:
+                    embed = discord.Embed(
+                        title="Notification",
+                        description="Your anon messaging ban has expired",
+                        color=discord.Color.green()
+                    )
+                    await user.send(embed=embed)
+                except discord.Forbidden:
+                    pass
 
     @app_commands.command(name="anon", description="Send messages anonymously to the general lobby channel")
     @app_commands.describe(message="The message you want to send", link="Message link you want to reply to")
     async def anon(self, interaction: discord.Interaction, message: str, link: Optional[str] = None):
         await interaction.response.defer(ephemeral=True)
-        userBanCheck = await anonbans_collection.find_one({"ID": str(interaction.user.id)})
+        userBanCheck = await anonban_collection.find_one({"userId": str(interaction.user.id), "active": True})
         if userBanCheck:
-            return await interaction.followup.send(":x: You have been banned from using anon messaging", ephemeral=True)
+            return await interaction.followup.send(f":x: You have been banned from using anon messaging", ephemeral=True)
 
         lobbyChannel = discord.utils.get(interaction.guild.channels, id=int(ug.load_config_value("lobbyChannel")))
         perms = lobbyChannel.permissions_for(interaction.user)
@@ -40,7 +75,7 @@ class SlashAnon(commands.Cog):
             return await interaction.followup.send("Looks like the channel is locked or you're muted. I won't send", ephemeral=True)
         
         
-        userVerifyCheck = await verified_collection.find_one({"ID": str(interaction.user.id)})
+        userVerifyCheck = await link_collection.find_one({"userId": str(interaction.user.id)})
         if not userVerifyCheck:
             return await interaction.followup.send("You're not verified, so you can't use anon messaging. If this is a mistake, please contact Han", ephemeral=True)
         
@@ -59,9 +94,8 @@ class SlashAnon(commands.Cog):
             description=message,
             color=discord.Color.blurple()
         )
-        
-        ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-        embed.timestamp = datetime.datetime.now(ist)
+
+        embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
         if reply_msg:
             anonMessage = await reply_msg.reply(embed=embed, mention_author=True)
@@ -86,7 +120,7 @@ class SlashAnon(commands.Cog):
 
     @app_commands.command(name="bananon", description="Ban a user from using anon based on message link")
     @app_commands.describe(link="The message link you want to use to ban",  reason="Reason for ban")
-    async def ban_anon(self, interaction: discord.Interaction, link: str, reason: Optional[str] = "No reason provided"):
+    async def ban_anon(self, interaction: discord.Interaction, link: str, time: str, reason: Optional[str] = "No reason provided"):
         await interaction.response.defer(ephemeral=True)
         if not ug.has_mod_permissions(interaction.user):
             return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
@@ -112,17 +146,31 @@ class SlashAnon(commands.Cog):
             return await interaction.followup.send("Could not find the user to ban", ephemeral=True)
         
 
-        userBanCheck = await anonbans_collection.find_one({"ID": str(banUser.id)})
+        userBanCheck = await anonban_collection.find_one({"userId": str(banUser.id), "active": True})
         if userBanCheck:
             return await interaction.followup.send(f"Dude's already banned from anon messaging", ephemeral=True)
         
-        ban_data = {
-            "ID": str(banUser.id),
-            "Reason": reason if reason else "No reason provided",
-        }
-        await anonbans_collection.insert_one(ban_data)
+        try:
+            seconds = self.parse_time(time)
+        except ValueError:
+            return await interaction.response.send_message("Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`", ephemeral=True)
+        
+        if seconds <= 10:
+            return await interaction.followup.send("You can't ban someone for less than 10 seconds", ephemeral=True)
+        
+        bannedAt = datetime.datetime.now(datetime.timezone.utc)
+        expiresAt = bannedAt + datetime.timedelta(seconds=seconds)
 
-        await interaction.followup.send(f"Member has been banned from anon messaging\nReason: {reason}")
+        ban_data = {
+            "userId": str(banUser.id),
+            "reason": reason,
+            "bannedAt": bannedAt,
+            "expiresAt": expiresAt,
+            "active": True,
+        }
+        await anonban_collection.insert_one(ban_data)
+
+        await interaction.followup.send(f"Member has been banned from anon messaging, their ban will expire <t:{int(ban_data['expiresAt'].timestamp())}:R>\nReason: {reason}")
 
         try:
             banEmbed = discord.Embed(
@@ -132,8 +180,8 @@ class SlashAnon(commands.Cog):
             )
             banEmbed.add_field(name="Reason", value=reason if reason else "No reason provided", inline=False)
             banEmbed.add_field(name="Message Link", value=f"[Click here to view the message]({link})", inline=False)
-            ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-            banEmbed.timestamp = datetime.datetime.now(ist)
+            banEmbed.add_field(name="Expires", value=f"<t:{int(ban_data['expiresAt'].timestamp())}:R>", inline=False)
+            banEmbed.timestamp = datetime.datetime.now(datetime.timezone.utc)
             await banUser.send(embed=banEmbed)
         except (discord.Forbidden, discord.HTTPException):
             await interaction.followup.send("DMs were closed", ephemeral=True)
@@ -157,12 +205,19 @@ class SlashAnon(commands.Cog):
             if not banUser:
                 return await interaction.followup.send("Could not find the user to ban", ephemeral=True)
 
-            userBanCheck = await anonbans_collection.find_one({"ID": str(banUser.id)})
+            userBanCheck = await anonban_collection.find_one({"userId": str(banUser.id), "active": True})
             if userBanCheck:
                 return await interaction.followup.send(f"Dude's already banned from anon messaging", ephemeral=True)
-            await anonbans_collection.insert_one({
-                "ID": str(banUser.id),
-                "Reason": "No reason provided, executed via context menu"
+            
+            bannedAt = datetime.datetime.now(datetime.timezone.utc)
+            defaultExpiry = bannedAt + datetime.timedelta(weeks=1)
+            await anonban_collection.insert_one({
+                "userId": str(banUser.id),
+                "reason": "No reason provided, executed via context menu",
+                "bannedAt": bannedAt,
+                # set default ban time as 1 week
+                "expiresAt": defaultExpiry,
+                "active": True
             })
 
             try:
@@ -173,32 +228,46 @@ class SlashAnon(commands.Cog):
                 )
                 embed.add_field(name="Reason", value="No reason provided, executed via context menu", inline=False)
                 embed.add_field(name="Message Link", value=f"[Jump to message](https://discord.com/channels/{interaction.guild.id}/{interaction.channel.id}/{message.id})", inline=False)
-                ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-                embed.timestamp = datetime.datetime.now(ist)
+                embed.add_field(name="Expires", value=f"<t:{int(defaultExpiry.timestamp())}:R>", inline=False)
+                embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
                 await banUser.send(embed=embed)
-                await interaction.followup.send(f"Member has been banned from anon messaging\nReason:  No reason provided, executed via context menu", ephemeral=True)
+                await interaction.followup.send(f"Member has been banned from anon messaging, their ban will expire <t:{int(defaultExpiry.timestamp())}:R>\nReason:  No reason provided, executed via context menu", ephemeral=True)
             except (discord.Forbidden, discord.HTTPException):
-                await interaction.followup.send("Member has been banned from anon messaging, but I couldn't DM them\nReason: No reason provided, executed via context menu", ephemeral=True)
+                await interaction.followup.send(f"Member has been banned from anon messaging, their ban will expire <t:{int(defaultExpiry.timestamp())}:R> but I couldn't DM them\nReason: No reason provided, executed via context menu", ephemeral=True)
         else:
             return await interaction.followup.send("You are not authorised to use this", ephemeral=True)
 
     @app_commands.command(name="userbananon", description="Manually ban a user from anon messaging")
     @app_commands.describe(member="The member to ban", reason="Reason for ban")
-    async def user_ban_anon(self, interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = "No reason specified"):
+    async def user_ban_anon(self, interaction: discord.Interaction, member: discord.Member, time: str, reason: Optional[str] = "No reason provided"):
         await interaction.response.defer(ephemeral=True)
 
         if not ug.has_mod_permissions(interaction.user):
             return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
 
-        userBanCheck = await anonbans_collection.find_one({"ID": str(member.id)})
+        userBanCheck =await anonban_collection.find_one({"userId": str(member.id), "active": True})
         if userBanCheck:
             return await interaction.followup.send("Dude's already banned from anon messaging", ephemeral=True)
+        
+        try:
+            seconds = self.parse_time(time)
+        except ValueError:
+            return await interaction.followup.send("Invalid time format. Please use a valid time format.", ephemeral=True)
+        
+        if seconds <= 10:
+            return await interaction.followup.send("You can't ban someone for less than 10 seconds", ephemeral=True)
+    
+        bannedAt = datetime.datetime.now(datetime.timezone.utc)
+        expiry = bannedAt + datetime.timedelta(seconds=seconds)
 
         ban_data = {
-            "ID": str(member.id),
-            "Reason": reason
+            "userId": str(member.id),
+            "reason": reason,
+            "bannedAt": bannedAt,
+            "expiresAt": expiry,
+            "active": True
         }
-        await anonbans_collection.insert_one(ban_data)
+        await anonban_collection.insert_one(ban_data)
         await interaction.followup.send(f"Member has been banned from anon messaging\nReason: {reason}")
 
         try:
@@ -208,8 +277,8 @@ class SlashAnon(commands.Cog):
                 color=discord.Color.red()
             )
             banEmbed.add_field(name="Reason", value=reason)
-            ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-            banEmbed.timestamp = datetime.datetime.now(ist)
+            banEmbed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            banEmbed.add_field(name="Expires", value=f"<t:{int(expiry.timestamp())}:R>", inline=False)
             await member.send(embed=banEmbed)
         except (discord.Forbidden, discord.HTTPException):
             await interaction.followup.send("DMs were closed", ephemeral=True)
@@ -226,8 +295,12 @@ class SlashAnon(commands.Cog):
         if not ug.has_mod_permissions(interaction.user):
             return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
 
-        result = await anonbans_collection.find_one_and_delete({"ID": str(member.id)})
-
+        #result = await anonban_collection.find_one_and_delete({"userId": str(member.id)})
+        # set active to false instead of deleting the document
+        result = await anonban_collection.find_one_and_update(
+            {"userId": str(member.id), "active": True},
+            {"$set": {"active": False}}
+        )
         if result is None:
             return await interaction.followup.send("This fellow wasn't even anon-banned in the first place", ephemeral=True)
 
@@ -239,8 +312,7 @@ class SlashAnon(commands.Cog):
                 description="Your anon messaging ban has been revoked",
                 color=discord.Color.green()
             )
-            ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-            unbanEmbed.timestamp = datetime.datetime.now(ist)
+            unbanEmbed.timestamp = datetime.datetime.now(datetime.timezone.utc)
             await member.send(embed=unbanEmbed)
         except (discord.Forbidden, discord.HTTPException):
             await interaction.followup.send("DMs were closed", ephemeral=True)
@@ -248,6 +320,34 @@ class SlashAnon(commands.Cog):
     @user_unban_anon.error
     async def user_unban_anon_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @app_commands.command(name="anonbaninfo", description="Get info about a user's anon ban")
+    @app_commands.describe(member="The member to get info about")
+    async def anon_ban_info(self, interaction: discord.Interaction, member: discord.Member):
+        await interaction.response.defer(ephemeral=True)
+
+        if not ug.has_mod_permissions(interaction.user):
+            return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
+
+        userBanCheck = await anonban_collection.find_one({"userId": str(member.id), "active": True})
+        if not userBanCheck:
+            return await interaction.followup.send("This fellow is not banned from anon messaging", ephemeral=True)
+
+
+        bannedAt = userBanCheck['bannedAt']
+        expiresAt = userBanCheck['expiresAt']
+
+        embed = discord.Embed(
+            title="Anon Ban Info",
+            color=discord.Color.red()
+        )
+        embed.add_field(name="User", value=f"{member} ({member.id})", inline=False)
+        embed.add_field(name="Reason", value=userBanCheck.get("reason", "No reason provided"), inline=False)
+        embed.add_field(name="Banned", value=f"<t:{int(bannedAt.timestamp())}:R>", inline=False)
+        embed.add_field(name="Expires", value=f"<t:{int(expiresAt.timestamp())}:R>", inline=False)
+        embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+
+        await interaction.followup.send(embed=embed)
     
 
 

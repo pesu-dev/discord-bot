@@ -12,7 +12,7 @@ from utils import general as ug
 
 mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
 db = mongo_client[os.getenv("DB_NAME")]
-mute_collection = db['mutes']
+mute_collection = db['Mutes']
 
 class SlashMod(commands.Cog):
     def __init__(self, bot):

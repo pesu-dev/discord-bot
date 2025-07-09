@@ -8,8 +8,8 @@ from utils import general as ug
 
 mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
 db = mongo_client[os.getenv("DB_NAME")]
-verified_collection = db["verified"]
-batch_collection = db["batch"]
+link_collection = db["Link"]
+student_collection = db["Student"]
 
 
 class SlashVerify(commands.Cog):
@@ -37,19 +37,17 @@ class SlashVerify(commands.Cog):
         await interaction.response.send_message(embed=embed)
         if ug.has_mod_permissions(interaction.user):
             newEmbed = discord.Embed(title="Priviliged Info", color=0x48BF91)
-            verRes = await verified_collection.find_one({"ID": str(user.id)})
+            linkRes = await link_collection.find_one({"userId": str(user.id)})
 
-            if not verRes:
+            if not linkRes:
                 newEmbed.description = "This user is not verified yet"
                 return await interaction.followup.send(embed=newEmbed, ephemeral=True)
 
-            batchRes = await batch_collection.find_one({"PRN": verRes["PRN"]})
-
-            if not batchRes:
+            if not linkRes.get("prn"):
                 newEmbed.description = "Missing data!!!"
                 return await interaction.followup.send(embed=newEmbed, ephemeral=True)
-            
-            newEmbed.description = f"**PRN:** {verRes['PRN']}"
+
+            newEmbed.description = f"**PRN:** {linkRes['prn']}"
 
             await interaction.followup.send(embed=newEmbed, ephemeral=True)
 
@@ -72,7 +70,7 @@ class SlashVerify(commands.Cog):
             return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
 
         await interaction.response.defer()
-        result = await verified_collection.delete_one({"ID": str(user.id)})
+        result = await link_collection.delete_one({"userId": str(user.id)})
         if result.deleted_count == 0:
             return await interaction.followup.send("This user was not verified in the first place", ephemeral=True)
         
