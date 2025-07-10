@@ -12,12 +12,11 @@ from utils import general as ug
 
 mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
 db = mongo_client[os.getenv("DB_NAME")]
-mute_collection = db['Mutes']
+mute_collection = db['mute']
 
 class SlashMod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.mute_dict = {}
         if not self.check_mutes_loop.is_running():
             self.check_mutes_loop.start()
 
