@@ -1,215 +1,717 @@
-import os
 import discord
+import os
+import datetime as dt
+from discord.ext import commands, tasks
 from discord import app_commands
-from discord.ext import commands
+from datetime import datetime, timedelta
+import motor.motor_asyncio as motor
+from discord.utils import utcnow
+from utils import general as ug
 
+
+
+mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
+db = mongo_client[os.getenv("DB_NAME")]
+mute_collection = db['Mutes']
 
 class SlashMod(commands.Cog):
-    def __init__(self, client: commands.Bot):
-        self.client = client
+    def __init__(self, bot):
+        self.bot = bot
+        self.mute_dict = {}
+        if not self.check_mutes_loop.is_running():
+            self.check_mutes_loop.start()
 
-    mod_group = app_commands.Group(name='mod', description='Moderation commands')
 
-    def check_admin_mod(self, user: discord.Member):
-        role_lst = [role.id for role in user.roles]
-        return self.client.config["roles"]["admin"] in role_lst or self.client.config["roles"]["mod"] in role_lst
-
-    @mod_group.command(name='kick', description='Kick a user')
-    @app_commands.describe(member="The user to kick", reason="The reason for kicking the user (optional)")
-    async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = None):
-        await interaction.response.defer(thinking=True)
-        # Check if the user is not an admin or mod
-        if not self.check_admin_mod(interaction.user):
-            await interaction.followup.send(content="Noob you can't do that", ephemeral=True)
-            return
-        # Check if the member is an admin or mod
-        if self.check_admin_mod(member):
-            await interaction.followup.send(content="Gomma you can't kick admin/mod", ephemeral=True)
-            return
-        # Check if the member is the bot
-        if member.bot:
-            await interaction.followup.send(content="You dare kick one of my brothers you little twat!", ephemeral=True)
-            return
-        mem_name = member.name.replace('`', '').replace('*', '').replace('_', ' ')
+    def parse_time(self, time_str: str) -> int:
+        time_str = time_str.lower().strip()
         try:
-            await member.kick(reason=reason)
-        except Exception as e:
-            await interaction.followup.send(f"Failed due to following error:\n`{e}`")
-            return
-        # Generate embed
-        embed = discord.Embed(title=f"{mem_name} was kicked!",
-                              description=f"\n**Reason**: {reason if reason else 'Reason not specified.'}",
-                              colour=0xff0000, timestamp=discord.utils.utcnow())
-        embed.set_image(url="https://media.giphy.com/media/3o85xxDEtOKC7dzlXa/giphy.gif")
-        await interaction.followup.send(embed=embed)
-        # Writing to the logs thread
-        embed.description = (f"{interaction.user.mention} kicked {member.mention}."
-                             f"\n\n**Reason**: {reason if reason else 'Reason not specified.'}")
-        embed.set_footer(text=f"Kicked by {interaction.user.name}").set_image(url=None)
-        await self.client.get_guild(self.client.config['guild_id']).get_channel_or_thread(
-            self.client.config['threads']['kick_logs']).send(embed=embed)
-
-    @mod_group.command(name='ban', description='Ban a user')
-    @app_commands.describe(member='The user to be banned', reason='The reason for banning the user (optional)',
-                           delete_msg_duration='Duration for which the messages of the user have to deleted in days')
-    async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = None,
-                  delete_msg_duration: app_commands.Range[int, 0, 7] = 1):
-        await interaction.response.defer(thinking=True)
-        # Check if the user not an admin or mod
-        if not self.check_admin_mod(interaction.user):
-            await interaction.followup.send(content="Noob you can't do that", ephemeral=True)
-            return
-        # Check if the member is an admin or mod
-        if self.check_admin_mod(member):
-            await interaction.followup.send(content="Gomma you can't ban admin/mod", ephemeral=True)
-            return
-        # Check if the member is the bot
-        if member.bot:
-            await interaction.followup.send(content="You dare ban one of my brothers you little twat!")
-            return
-        mem_name = member.name.replace('`', '').replace('*', '').replace('_', ' ')
-        try:
-            await member.ban(reason=reason, delete_message_days=delete_msg_duration)
-        except Exception as e:
-            await interaction.followup.send(f"Failed due to following error:\n`{e}`")
-            return
-        # Generate embed
-        embed = discord.Embed(title=f"{mem_name} was banned!",
-                              description=f"\n**Reason**: {reason if reason else 'Reason not specified.'}",
-                              colour=0xff0000, timestamp=discord.utils.utcnow())
-        embed.set_image(url="https://media.giphy.com/media/fe4dDMD2cAU5RfEaCU/giphy.gif")
-        await interaction.followup.send(embed=embed)
-        # Writing to the logs thread
-        embed.description = (f"{interaction.user.mention} banned {member.mention}."
-                             f"\n\n**Reason**: {reason if reason else 'Reason not specified.'}")
-        embed.set_footer(text=f"Banned by {interaction.user.name}").set_image(url=None)
-        await self.client.get_guild(self.client.config['guild_id']).get_channel_or_thread(
-            self.client.config['threads']['ban_logs']).send(embed=embed)
-
-    @mod_group.command(name='untimeout', description='To remove a timeout a user')
-    @app_commands.describe(member="The user whose timeout is to be removed.")
-    async def timeout(self, interaction: discord.Interaction, member: discord.Member):
-        await interaction.response.defer(thinking=True)
-        # Check if the user not an admin or mod
-        if not self.check_admin_mod(interaction.user):
-            await interaction.followup.send(content="Noob you can't do that", ephemeral=True)
-            return
-        try:
-            await member.timeout(None)
-        except Exception as e:
-            await interaction.followup.send(f"Failed due to following error:\n`{e}`")
-            return
-        await interaction.followup.send(f"Successfully removed timeout for {member.mention}")
-        # Send to logs
-        embed = discord.Embed(title="Timeout removed",
-                              description=f"{member.name}'s timeout was removed by {interaction.user.mention}",
-                              colour=0xffff00, timestamp=discord.utils.utcnow())
-        embed.set_footer(text=f"Removed by {interaction.user.name}")
-        await member.guild.get_channel_or_thread(self.client.config['channels']['mod_logs']).send(embed=embed)
-
-    @mod_group.command(name='lock', description='To lock a channel')
-    @app_commands.describe(channel="The channel to be locked", reason="The reason for locking the channel (optional)")
-    async def lock(self, interaction: discord.Interaction, channel: discord.TextChannel = None, reason: str = None):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        # Check if the user not an admin or mod
-        if not self.check_admin_mod(interaction.user):
-            await interaction.followup.send(content="Noob you can't do that", ephemeral=True)
-            return
-        if channel is None:
-            channel = interaction.channel
-        for obj in channel.overwrites:
-            if isinstance(obj, discord.Role) and obj.id in [self.client.config['roles']['admin'],
-                                                            self.client.config['roles']['mod']]:
-                continue
-            try:
-                perms = channel.overwrites_for(obj)
-                perms.send_messages = False
-                await channel.set_permissions(obj, overwrite=perms, reason=reason)
-            except Exception as e:
-                await interaction.followup.send(f"Failed for {obj.mention} due to following error:\n`{e}`")
-                continue
-        await interaction.followup.send(f"Successfully locked {channel.mention}")
-        # Send channel locked message
-        embed = discord.Embed(title="Channel locked :lock:",
-                              description=f"{'**Reason:** '+reason if reason else 'Reason not specified.'}",
-                              colour=0xffa500, timestamp=discord.utils.utcnow())
-        await channel.send(embed=embed)
-        # Send to logs
-        embed = discord.Embed(title="Channel locked",
-                              description=f"{channel.mention} was locked by {interaction.user.mention}\n\n**Reason**: "
-                                          f"{reason if reason else 'Reason not specified.'}",
-                              colour=0xffa500, timestamp=discord.utils.utcnow())
-        embed.set_footer(text=f"Locked by {interaction.user.name}")
-        await channel.guild.get_channel_or_thread(self.client.config['channels']['mod_logs']).send(embed=embed)
-
-    @mod_group.command(name='unlock', description='To unlock a channel')
-    @app_commands.describe(channel="The channel to be unlocked", private_channel="Whether the channel is private")
-    async def unlock(self, interaction: discord.Interaction, channel: discord.TextChannel = None,
-                     private_channel: bool = True):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        # Check if the user not an admin or mod
-        if not self.check_admin_mod(interaction.user):
-            await interaction.followup.send(content="Noob you can't do that", ephemeral=True)
-            return
-        if channel is None:
-            channel = interaction.channel
-        for obj in channel.overwrites:
-            if private_channel and isinstance(obj, discord.Role) and obj.id == channel.guild.default_role.id:
-                continue
-            elif isinstance(obj, discord.Role) and obj.name.lower() == 'muted':
-                continue
-            try:
-                perms = channel.overwrites_for(obj)
-                perms.send_messages = True
-                await channel.set_permissions(obj, overwrite=perms)
-            except Exception as e:
-                await interaction.followup.send(f"Failed for {obj.mention} due to following error:\n`{e}`")
-                continue
-        await interaction.followup.send(f"Successfully unlocked {channel.mention}")
-        # Send channel unlocked message
-        embed = discord.Embed(title="Channel unlocked :unlock:",
-                              colour=0x00ff00, timestamp=discord.utils.utcnow())
-        await channel.send(embed=embed)
-        # Send to logs
-        embed = discord.Embed(title="Channel unlocked",
-                              description=f"{channel.mention} was unlocked by {interaction.user.mention}",
-                              colour=0x00ff00, timestamp=discord.utils.utcnow())
-        embed.set_footer(text=f"Unlocked by {interaction.user.name}")
-        await channel.guild.get_channel_or_thread(self.client.config['channels']['mod_logs']).send(embed=embed)
-
-    @mod_group.command(name='echo', description='To echo a message')
-    @app_commands.describe(channel="The channel to send the message in", message="The message to be sent (Use \\n for "
-                                                                                 "new line)",
-                           anonymous="Whether the message is to be sent anonymously")
-    async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str,
-                   anonymous: bool = False):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        # Check if the user not an admin or mod
-        if not self.check_admin_mod(interaction.user):
-            await interaction.followup.send(content="Noob you can't do that", ephemeral=True)
-            return
-        try:
-            message = message.replace('\\n', '\n')
-            if anonymous:
-                await channel.send(message)
+            if time_str.endswith('d'):
+                return int(time_str[:-1]) * 24 * 60 * 60
+            elif time_str.endswith('h'):
+                return int(time_str[:-1]) * 60 * 60
+            elif time_str.endswith('m'):
+                return int(time_str[:-1]) * 60
+            elif time_str.endswith('s'):
+                return int(time_str[:-1])
             else:
-                webhooks = await channel.webhooks()
-                webhook = discord.utils.get(webhooks, name="Echo")
-                if webhook is None:
-                    webhook = await channel.create_webhook(name="Echo")
-                await webhook.send(message, username=interaction.user.global_name,
-                                   avatar_url=interaction.user.avatar.url)
-        except Exception as e:
-            await interaction.followup.send(f"Failed due to following error:\n`{e}`")
+                return int(time_str)
+        except ValueError:
+            raise ValueError("Invalid time format")
+        
+    @tasks.loop(seconds=30)
+    async def check_mutes_loop(self):
+        #print("checking for expired mutes")
+        now = datetime.now(dt.timezone.utc)
+        expired_mutes = await mute_collection.find({
+            "unmute_time": {"$lte": now},
+            "active": True
+        }).to_list(length=100)
+
+        for mute in expired_mutes:
+            guild = self.bot.get_guild(mute["guild_id"])
+            if not guild:
+                continue
+
+            try:
+                member = await guild.fetch_member(mute["user_id"])
+            except discord.NotFound:
+                await mute_collection.update_one(
+                    {"_id": mute["_id"]},
+                    {"$set": {
+                        "active": False,
+                        "unmute_time": now,
+                        "unmute_type": "auto_member_left"
+                    }}
+                )
+                continue
+
+            muted_role = discord.utils.get(guild.roles, id=int(ug.load_config_value("muted")))
+            if muted_role and muted_role in member.roles:
+                try:
+                    await member.remove_roles(muted_role)
+                except discord.HTTPException:
+                    continue
+
+            await mute_collection.update_one(
+                {"_id": mute["_id"]},
+                {"$set": {
+                    "active": False,
+                    "unmute_time": now,
+                    "unmute_type": "loop_auto"
+                }}
+            )
+
+            channel = guild.get_channel(mute["channel_id"])
+            if channel:
+                unmute_embed = discord.Embed(
+                    title="Unmute",
+                    color=discord.Color.green(),
+                    timestamp=now
+                )
+                unmute_embed.add_field(name="Unmuted user", value=f"{member.mention} welcome back", inline=False)
+                try:
+                    await channel.send(content=f"{member.mention}", embed=unmute_embed)
+                except discord.HTTPException:
+                    pass
+
+            mod_logs = guild.get_channel(int(ug.load_config_value("modlogs")))
+            if mod_logs:
+                unmute_logs_embed = discord.Embed(
+                    title="Unmute",
+                    color=discord.Color.green(),
+                    timestamp=now
+                )
+                unmute_logs_embed.add_field(name="Unmuted user", value=f"{member.mention}\nModerator: Auto", inline=False)
+                try:
+                    await mod_logs.send(embed=unmute_logs_embed)
+                except discord.HTTPException:
+                    pass
+
+    
+
+    @app_commands.command(name="kick", description="Kick a member from the server")
+    @app_commands.describe(
+        member="The member to kick",
+        reason="Reason for the kick"
+    )
+    async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.response.send_message("Noob you can't do that", ephemeral=True)
             return
-        await interaction.followup.send(f"Successfully echoed the message in {channel.mention}")
-        # Send to logs
-        embed = discord.Embed(title="Message echoed",
-                              description=f"**Anonymous**: {anonymous}\n\n**Message**:\n{message}",
-                              colour=0x0000ff, timestamp=discord.utils.utcnow())
-        embed.set_footer(text=f"Echoed by {interaction.user.name}")
-        await channel.guild.get_channel_or_thread(self.client.config['channels']['mod_logs']).send(embed=embed)
+
+        if member.bot:
+            await interaction.response.send_message("You dare kick one of my brothers you little twat", ephemeral=True)
+            return
+        
+        if member is None:
+            await interaction.response.send_message("Please mention someone to kick", mention_author=False)
+            return
+        
+        if ug.has_mod_permissions(member):
+            await interaction.response.send_message("Gomma you can't kick admin/mod", mention_author=False)
+            return
+
+        try:
+            await member.send(f"You have been kicked from **{interaction.guild.name}**\nReason: {reason}")
+        except (discord.Forbidden, discord.HTTPException):
+            pass 
+
+        await member.kick(reason=f"Kicked by {interaction.user} | {reason}")
+        embed = discord.Embed(
+            title="Member Kicked",
+            color=discord.Color.red(),
+            description=f"{member.mention} was kicked by {interaction.user.mention}\n**Reason:** {reason}",
+            timestamp=datetime.now()
+        )
+        await interaction.response.send_message(embed=embed)
+        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs_channel:
+            await mod_logs_channel.send(embed=embed)
+        else:
+            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+
+
+    @app_commands.command(name="echo", description="Echoes a message to the target channel")
+    @app_commands.describe(channel="The channel to send the message to", message="The message to send", attachment="An optional attachment to send with the message")
+    async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str, attachment: discord.Attachment =None):
+        await interaction.response.defer(ephemeral=True)
+        if not ug.has_mod_permissions(interaction.user):
+            return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
+        if not attachment:
+            await channel.send(message)
+        else:
+            await channel.send(message, file = await attachment.to_file())
+        await interaction.followup.send(f"Message sent to {channel.mention}")
+
+    @echo.error
+    async def echo_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            if isinstance(error.original, discord.Forbidden):
+                await interaction.followup.send(
+                    "I do not have permission to send messages in that channel", ephemeral=True
+                )
+            elif isinstance(error.original, discord.NotFound):
+                await interaction.followup.send(
+                    "The specified channel does not exist", ephemeral=True
+                )
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error.original))
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+    
+    @app_commands.command(name="changenick", description="Change someone else's nickname")
+    @app_commands.describe(member="The member whose name you want to change", new_nick="The new nickname you wanna give this user")
+    async def changenick(self, interaction: discord.Interaction, member: discord.Member, new_nick: str):
+        await interaction.response.defer(ephemeral=True)
+        if not ug.has_mod_permissions(interaction.user):
+            return await interaction.followup.send(f"Awwww sooo cutely you're trying to change {member.display_name}'s nickname", ephemeral=True)
+        newNick = new_nick.strip()
+        await member.edit(nick=newNick)
+        await interaction.followup.send(f"Nicely changed {member.display_name}'s name to {newNick}", ephemeral=True)
+
+    @changenick.error
+    async def changenick_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to change the name of?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to change this user's nickname at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @kick.error
+    async def kick_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to kick?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to kick this user at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+
+
+    @app_commands.command(name="mute", description="Mute a member for a specified duration")
+    @app_commands.describe(
+        member="The member to mute (or yourself for self-mute)",
+        time="Duration for mute (e.g., 1h, 30m, 2d)",
+        reason="Reason for the mute"
+    )
+    async def mute(self, interaction: discord.Interaction, member: discord.Member, time: str, reason: str = "No reason provided"):
+        muted_role = discord.utils.get(interaction.guild.roles, id=int(ug.load_config_value('muted')))
+        if interaction.user.id == member.id:
+            is_self_mute = True
+        else:
+            if not ug.has_mod_permissions(interaction.user):
+                await interaction.response.send_message("You are not authorised to do that", ephemeral=True)
+                return
+            is_self_mute = False
+
+        try:
+            seconds = self.parse_time(time)
+        except ValueError:
+            await interaction.response.send_message("Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`", ephemeral=True)
+            return
+
+        if seconds <= 0 or seconds > 1209600: 
+            await interaction.response.send_message("Mute time limit is 14 days only", ephemeral=True)
+            return
+
+        if is_self_mute and seconds < 3600:
+            await interaction.response.send_message("Self-mute is only for 1 hour or more", ephemeral=True)
+            return
+
+
+        if muted_role in member.roles:
+            await interaction.response.send_message("Brother, leave the already muted poor soul alone", ephemeral=True)
+            return
+
+        if not is_self_mute and ug.has_mod_permissions(member):
+            await interaction.response.send_message("Leyy, he's admin/mod. Can't mute them", ephemeral=True)
+            return
+
+        if member.bot:
+            await interaction.response.send_message("You dare mute one of my kind nin amn", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=False)
+
+        await member.add_roles(muted_role)
+        mute_time = datetime.now(dt.timezone.utc)
+        unmute_time = mute_time + timedelta(seconds=seconds)
+
+        mute_record = {
+            'user_id': member.id,
+            'guild_id': interaction.guild.id,
+            'channel_id': interaction.channel.id,
+            'moderator_id': interaction.user.id,  
+            'mute_time': mute_time,
+            'unmute_time': unmute_time,
+            'duration_seconds': seconds,
+            'duration_string': time,
+            'reason': reason,
+            'active': True,
+            'is_self_mute': is_self_mute
+        }
+        await mute_collection.insert_one(mute_record)
+
+        mute_embed = discord.Embed(
+            title="Mute",
+            color=discord.Color.red(),
+            timestamp=datetime.now(dt.timezone.utc)
+        )
+        unmute_timestamp = int(unmute_time.timestamp())
+        mute_embed.add_field(
+            name="Muted User", 
+            value=f"{member.mention} was muted\nUnmute <t:{unmute_timestamp}:R>",
+            inline=False
+        )
+        
+        await interaction.followup.send(embed=mute_embed)
+
+        mod_logs = interaction.guild.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs:
+            mute_logs_embed = discord.Embed(
+                title="Mute",
+                color=discord.Color.red(),
+                timestamp=datetime.now(dt.timezone.utc)
+            )
+            moderator_mention = f"<@{interaction.user.id}>" if not is_self_mute else "Self"
+            mute_logs_embed.add_field(
+                name="Muted User", 
+                value=f"{member.mention}\nTime: {time}\nReason: {reason}\nModerator: {moderator_mention}",
+                inline=False
+            )
+            await mod_logs.send(embed=mute_logs_embed)
+
+    @mute.error
+    async def mute_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to mute?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to mute this user at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @app_commands.command(name="unmute", description="Unmute a member")
+    @app_commands.describe(member="The member to unmute")
+    async def unmute(self, interaction: discord.Interaction, member: discord.Member):
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.response.send_message("You are not authorised to do this", ephemeral=True)
+            return
+
+        muted_role = discord.utils.get(interaction.guild.roles, id=int(ug.load_config_value('muted')))
+
+        if muted_role not in member.roles:
+            await interaction.response.send_message("Why you trynna unmute someone who ain't muted?", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=False)
+
+        await member.remove_roles(muted_role)
+
+        await mute_collection.update_many(
+            {'user_id': member.id, 'guild_id': interaction.guild.id, 'active': True},
+            {'$set': {'active': False, 'unmute_time': datetime.now(dt.timezone.utc), 'unmute_type': 'manual', 'unmuted_by': interaction.user.id}}
+        )
+
+        unmute_embed = discord.Embed(
+            title="Unmute",
+            color=discord.Color.green(),
+            timestamp=datetime.now(dt.timezone.utc)
+        )
+        unmute_embed.add_field(name="Unmuted user", value=f"{member.mention} welcome back", inline=False)
+        
+        await interaction.followup.send(embed=unmute_embed)
+
+        mod_logs = interaction.guild.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs:
+            unmute_logs_embed = discord.Embed(
+                title="Unmute",
+                color=discord.Color.green(),
+                timestamp=datetime.now(dt.timezone.utc)
+            )
+            unmute_logs_embed.add_field(
+                name="Unmuted user", 
+                value=f"{member.mention}\nModerator: {interaction.user.mention}",
+                inline=False
+            )
+            await mod_logs.send(embed=unmute_logs_embed)
+
+    @unmute.error
+    async def unmute_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to unmute?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to unmute this user at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @app_commands.command(name="purge", description="Delete a number of recent messages")
+    @app_commands.describe(amount="Number of messages to delete")
+    async def purge(self, interaction: discord.Interaction, amount: int):
+        
+        if not interaction.channel.permissions_for(interaction.user).manage_messages:
+            await interaction.response.send_message("You don't have permission to delete messages", ephemeral=True)
+            return
+        
+        if amount < 1 or amount > 100:
+            await interaction.response.send_message("Please specify a number between 1 and 100", ephemeral=True)
+            return
+            
+        await interaction.response.defer(ephemeral=True)
+        deleted = await interaction.channel.purge(limit=amount)
+        await interaction.followup.send(f"Deleted last {len(deleted)} messages")
+        embed = discord.Embed(
+            title="Messages Purged",
+            color=discord.Color.green(),
+            description=f"{len(deleted)} messages were deleted in {interaction.channel.mention} by {interaction.user.mention}",
+            timestamp=datetime.now()
+        )
+        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs_channel:
+            await mod_logs_channel.send(embed=embed)
+        else:
+            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+
+    @purge.error
+    async def purge_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to delete messages in this channel at this time", ephemeral=True)
+            elif isinstance(original, discord.NotFound):
+                await interaction.followup.send("This channel doesn't exist or has been deleted", ephemeral=True)
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @app_commands.command(name='lock', description='lock a channel')
+    @app_commands.describe(
+        channel='The channel to lock (defaults to current channel)',
+        reason='Reason for locking the channel'
+    )
+    async def lock_channel(self, interaction: discord.Interaction, channel: discord.TextChannel = None, reason: str = "No reason provided"):
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.response.send_message("I am not dyno to let you do this", ephemeral=True)
+            return
+
+        if channel is None:
+            channel = interaction.channel
+
+        everyone_role = interaction.guild.default_role
+        
+        overwrites = channel.overwrites_for(everyone_role)
+        if overwrites.send_messages is False:
+            await interaction.response.send_message("This channel is already locked", ephemeral=True)
+            return
+
+        await channel.set_permissions(everyone_role, send_messages=False)
+        await interaction.response.send_message(f"Locked {channel.mention}", ephemeral=False)
+
+        lock_embed = discord.Embed(
+            title="Channel Locked :lock:",
+            color=discord.Color.red(),
+            description=reason,
+            timestamp=datetime.now(dt.timezone.utc)
+        )
+        await channel.send(embed=lock_embed)
+
+        lock_logs_embed = discord.Embed(
+            title="Lock",
+            color=discord.Color.red(),
+            timestamp=datetime.now(dt.timezone.utc)
+        )
+        lock_logs_embed.add_field(name="Channel", value=channel.mention, inline=True)
+        lock_logs_embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+        lock_logs_embed.add_field(name="Reason", value=reason, inline=False)
+        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs_channel:
+            await mod_logs_channel.send(embed=lock_logs_embed)
+        else:
+            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+
+    @lock_channel.error
+    async def lock_channel_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This channel doesn't exist or has been deleted", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to lock this channel at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+
+    @app_commands.command(name='unlock', description='Unlock a channel')
+    @app_commands.describe(
+        channel='The channel to unlock (defaults to current channel)'
+    )
+    async def unlock_channel(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.response.send_message("You think I am like dyno ah?", ephemeral=True)
+            return
+
+        if channel is None:
+            channel = interaction.channel
+
+        everyone_role = interaction.guild.default_role
+        
+        overwrites = channel.overwrites_for(everyone_role)
+        if overwrites.send_messages is None or overwrites.send_messages is True:
+            await interaction.response.send_message("This channel ain't locked bruh whatcha doin", ephemeral=True)
+            return
+
+        await channel.set_permissions(everyone_role, send_messages=None)
+        await interaction.response.send_message(f"Unlocked {channel.mention}", ephemeral=False)
+
+        unlock_embed = discord.Embed(
+            title="Channel Unlocked :unlock:",
+            color=discord.Color.green(),
+            timestamp=datetime.now(dt.timezone.utc)
+        )
+        await channel.send(embed=unlock_embed)
+
+        unlock_logs_embed = discord.Embed(
+            title="Unlock",
+            color=discord.Color.green(),
+            timestamp=datetime.now(dt.timezone.utc)
+        )
+        unlock_logs_embed.add_field(name="Channel", value=channel.mention, inline=True)
+        unlock_logs_embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs_channel:
+            await mod_logs_channel.send(embed=unlock_logs_embed)
+        else:
+            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+
+    
+    @unlock_channel.error
+    async def unlock_channel_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This channel doesn't exist or has been deleted", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to unlock this channel at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+
+
+    @app_commands.command(name='timeout', description='Timeout a member for a specified duration')
+    @app_commands.describe(
+        member='The member to timeout',
+        time='Duration for timeout (e.g., 1h, 30m, 2d)',
+        reason='Reason for the timeout'
+    )
+    async def timeout_member(self, interaction: discord.Interaction, member: discord.Member, time: str, reason: str = "No reason provided"):
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.response.send_message("You are not authorised to do this", ephemeral=True)
+            return
+
+        try:
+            seconds = self.parse_time(time)
+        except ValueError:
+            await interaction.response.send_message("Mention the proper amount of time to be timed-out\nAccepted Time Format: Should end with `d/h/m/s`", ephemeral=True)
+            return
+
+        if seconds <= 0 or seconds > 2419200: 
+            await interaction.response.send_message("Time-out limit is 28 days only", ephemeral=True)
+            return
+
+        if member.is_timed_out():
+            await interaction.response.send_message("Brother, leave the already timed-out poor soul alone", ephemeral=True)
+            return
+
+        if ug.has_mod_permissions(member):
+            await interaction.response.send_message("Leyy, he's admin/mod. Can't time them out", ephemeral=True)
+            return
+
+        if member.bot:
+            await interaction.response.send_message("You dare time-out one of my kind nin amn", ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=False)
+
+        timeout_until = utcnow() + timedelta(seconds=seconds)
+        await member.timeout(timeout_until, reason=reason)
+
+        timeout_embed = discord.Embed(
+            title="Time-out",
+            color=0x8B0000,
+            timestamp=utcnow()
+        )
+        
+        timeout_timestamp = int(timeout_until.timestamp())
+        timeout_embed.add_field(
+            name="Timed-out Member", 
+            value=f"{member.mention} was timed-out\nDe-time-out <t:{timeout_timestamp}:R>",
+            inline=False
+        )
+        
+        await interaction.followup.send(embed=timeout_embed)
+
+        mod_logs = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs:
+            timeout_logs_embed = discord.Embed(
+                title="Time-out",
+                color=0x8B0000,
+                timestamp=utcnow()
+            )
+            timeout_logs_embed.add_field(
+                name="Muted User", 
+                value=f"{member.mention}\nTime: {time}\nReason: {reason}\nModerator: {interaction.user.mention}",
+                inline=False
+            )
+            await mod_logs.send(embed=timeout_logs_embed)
+
+    @timeout_member.error
+    async def timeout_member_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to timeout?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to timeout this user at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+
+    @app_commands.command(name='detimeout', description='Remove timeout from a member')
+    @app_commands.describe(member='The member to remove timeout from')
+    async def detimeout_member(self, interaction: discord.Interaction, member: discord.Member):
+        
+        if not ug.has_mod_permissions(interaction.user):
+            await interaction.response.send_message("You are not authorised to do this", ephemeral=True)
+            return
+
+        if not member.is_timed_out():
+            await interaction.response.send_message("This person ain't on time-out only", ephemeral=True)
+            return
+        
+
+        await interaction.response.defer(ephemeral=False)
+            
+        await member.timeout(None, reason=f"Timeout removed by {interaction.user}")
+
+        detimeout_embed = discord.Embed(
+            title="De-Time-out",
+            color=0x00FF00, 
+            timestamp=utcnow()
+        )
+        detimeout_embed.add_field(
+            name="De-timed-out Member", 
+            value=f"{member.mention}, welcome back",
+            inline=False
+        )
+        
+        await interaction.followup.send(content=f"{member.mention}", embed=detimeout_embed)
+
+        mod_logs = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        if mod_logs:
+            detimeout_logs_embed = discord.Embed(
+                title="De-time-out",
+                color=0x00FF00,
+                timestamp=utcnow()
+            )
+            detimeout_logs_embed.add_field(
+                name="De-timed-out User", 
+                value=f"{member.mention}\nModerator: {interaction.user.mention}",
+                inline=False
+            )
+            await mod_logs.send(embed=detimeout_logs_embed)
+
+    @detimeout_member.error
+    @timeout_member.error
+    async def detimeout_member_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+
+            if isinstance(original, discord.NotFound):
+                await interaction.followup.send("This user doesn't even exist here, who are you trying to de-timeout?", ephemeral=True)
+
+            elif isinstance(original, discord.Forbidden):
+                await interaction.followup.send("I am unable to de-timeout this user at this time", ephemeral=True)
+
+            else:
+                await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+        else:
+            await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
 
 async def setup(client: commands.Bot):
-    await client.add_cog(SlashMod(client), guild=discord.Object(id=client.config['guild_id']))
+    await client.add_cog(
+        SlashMod(client), guild=discord.Object(id=os.getenv("GUILD_ID")))
