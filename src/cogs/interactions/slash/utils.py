@@ -39,7 +39,7 @@ class RoleSelect(discord.ui.Select):
         member = interaction.user
         role_id = self.values[0]
 
-        if any(role.id == ug.load_config_value("just_joined") for role in member.roles):
+        if any(role.id == ug.load_role_id("just_joined") for role in member.roles):
             await interaction.followup.send("You need to verify yourself first.")
             return
 
@@ -117,7 +117,7 @@ class SlashUtils(commands.Cog):
     
     @staticmethod
     def get_verified_count(guild: discord.Guild) -> int:
-        role = discord.utils.get(guild.roles, id=ug.load_config_value("verified"))
+        role = discord.utils.get(guild.roles, id=ug.load_role_id("verified"))
         if role is None:
             return 0
         return len(role.members)
@@ -222,6 +222,7 @@ class SlashUtils(commands.Cog):
         description="Pick up additional roles to get access to more channels",
         color=discord.Color.blurple(),
         timestamp=discord.utils.utcnow())
+        embe.set_footer(text="PESU Bot")
 
 
         channel = interaction.channel if channel is None else channel
@@ -396,5 +397,5 @@ class SlashUtils(commands.Cog):
 
 async def setup(client: commands.Bot):
     await client.add_cog(
-        SlashUtils(client), guild=discord.Object(id=os.getenv("GUILD_ID"))
+        SlashUtils(client), guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID"))
     )

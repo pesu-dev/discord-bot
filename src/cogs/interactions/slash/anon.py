@@ -57,6 +57,7 @@ class SlashAnon(commands.Cog):
                         description="Your anon messaging ban has expired",
                         color=discord.Color.green()
                     )
+                    embed.set_footer(text="PESU Bot")
                     await user.send(embed=embed)
                 except discord.Forbidden:
                     pass
@@ -69,7 +70,7 @@ class SlashAnon(commands.Cog):
         if userBanCheck:
             return await interaction.followup.send(f":x: You have been banned from using anon messaging", ephemeral=True)
 
-        lobbyChannel = discord.utils.get(interaction.guild.channels, id=int(ug.load_config_value("lobbyChannel")))
+        lobbyChannel = discord.utils.get(interaction.guild.channels, id=int(ug.load_channel_id("lobbyChannel")))
         perms = lobbyChannel.permissions_for(interaction.user)
         if not perms.send_messages:
             return await interaction.followup.send("Looks like the channel is locked or you're muted. I won't send", ephemeral=True)
@@ -96,6 +97,7 @@ class SlashAnon(commands.Cog):
         )
 
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        embed.set_footer(text="PESU Bot")
 
         if reply_msg:
             anonMessage = await reply_msg.reply(embed=embed, mention_author=True)
@@ -182,6 +184,7 @@ class SlashAnon(commands.Cog):
             banEmbed.add_field(name="Message Link", value=f"[Click here to view the message]({link})", inline=False)
             banEmbed.add_field(name="Expires", value=f"<t:{int(ban_data['expiresAt'].timestamp())}:R>", inline=False)
             banEmbed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            banEmbed.set_footer(text="PESU Bot")
             await banUser.send(embed=banEmbed)
         except (discord.Forbidden, discord.HTTPException):
             await interaction.followup.send("DMs were closed", ephemeral=True)
@@ -230,6 +233,7 @@ class SlashAnon(commands.Cog):
                 embed.add_field(name="Message Link", value=f"[Jump to message](https://discord.com/channels/{interaction.guild.id}/{interaction.channel.id}/{message.id})", inline=False)
                 embed.add_field(name="Expires", value=f"<t:{int(defaultExpiry.timestamp())}:R>", inline=False)
                 embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+                embed.set_footer(text="PESU Bot")
                 await banUser.send(embed=embed)
                 await interaction.followup.send(f"Member has been banned from anon messaging, their ban will expire <t:{int(defaultExpiry.timestamp())}:R>\nReason:  No reason provided, executed via context menu", ephemeral=True)
             except (discord.Forbidden, discord.HTTPException):
@@ -279,6 +283,7 @@ class SlashAnon(commands.Cog):
             banEmbed.add_field(name="Reason", value=reason)
             banEmbed.timestamp = datetime.datetime.now(datetime.timezone.utc)
             banEmbed.add_field(name="Expires", value=f"<t:{int(expiry.timestamp())}:R>", inline=False)
+            banEmbed.set_footer(text="PESU Bot")
             await member.send(embed=banEmbed)
         except (discord.Forbidden, discord.HTTPException):
             await interaction.followup.send("DMs were closed", ephemeral=True)
@@ -313,6 +318,7 @@ class SlashAnon(commands.Cog):
                 color=discord.Color.green()
             )
             unbanEmbed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            unbanEmbed.set_footer(text="PESU Bot")
             await member.send(embed=unbanEmbed)
         except (discord.Forbidden, discord.HTTPException):
             await interaction.followup.send("DMs were closed", ephemeral=True)
@@ -345,6 +351,7 @@ class SlashAnon(commands.Cog):
         embed.add_field(name="Reason", value=userBanCheck.get("reason", "No reason provided"), inline=False)
         embed.add_field(name="Banned", value=f"<t:{int(bannedAt.timestamp())}:R>", inline=False)
         embed.add_field(name="Expires", value=f"<t:{int(expiresAt.timestamp())}:R>", inline=False)
+        embed.set_footer(text="PESU Bot")
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
         await interaction.followup.send(embed=embed)
@@ -354,5 +361,5 @@ class SlashAnon(commands.Cog):
 
 async def setup(client: commands.Bot):
     cog = SlashAnon(client)
-    await client.add_cog(cog, guild=discord.Object(id=os.getenv("GUILD_ID")))
-    client.tree.add_command(cog.ctx_menu, guild=discord.Object(id=os.getenv("GUILD_ID")))
+    await client.add_cog(cog, guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")))
+    client.tree.add_command(cog.ctx_menu, guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")))

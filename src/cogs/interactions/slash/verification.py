@@ -34,6 +34,8 @@ class SlashLink(commands.Cog):
         if unixJoinedTimestamp:
             embed.add_field(name="Join", value=f"<t:{unixJoinedTimestamp}:R>", inline=True)
 
+        embed.set_footer(text="PESU Bot")
+
         await interaction.response.send_message(embed=embed)
         if ug.has_mod_permissions(interaction.user):
             newEmbed = discord.Embed(title="Priviliged Info", color=0x48BF91)
@@ -48,6 +50,7 @@ class SlashLink(commands.Cog):
                 return await interaction.followup.send(embed=newEmbed, ephemeral=True)
 
             newEmbed.add_field(name="PRN", value=linkRes['prn'], inline=False)
+            newEmbed.set_footer(text="PESU Bot")
 
             await interaction.followup.send(embed=newEmbed, ephemeral=True)
 
@@ -82,7 +85,7 @@ class SlashLink(commands.Cog):
         try:
             await user.remove_roles(*roles_to_remove, reason="Delinking")
 
-            just_joined_role = interaction.guild.get_role(ug.load_config_value("just_joined"))
+            just_joined_role = interaction.guild.get_role(ug.load_role_id("just_joined"))
             if just_joined_role:
                 await user.add_roles(just_joined_role)
         except discord.Forbidden:
@@ -103,5 +106,5 @@ class SlashLink(commands.Cog):
 
 async def setup(client: commands.Bot):
     await client.add_cog(
-        SlashLink(client), guild=discord.Object(id=os.getenv("GUILD_ID"))
+        SlashLink(client), guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID"))
     )

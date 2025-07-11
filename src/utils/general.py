@@ -13,6 +13,20 @@ def load_config_value(key: str, default=None):
                 return default
     return default
 
+def load_role_id(role_name: str) -> int:
+    config = load_config_value("GUILD")
+    if config and "ROLES" in config:
+        return config["ROLES"].get(role_name, None)
+    return None
+
+def load_channel_id(channel_name: str, logs: bool = False) -> int:
+    config = load_config_value("GUILD")
+    if config and "CHANNELS" in config:
+        if logs:
+            return config["CHANNELS"]["LOGS"].get(channel_name, None)
+        return config["CHANNELS"].get(channel_name, {}).get("ID", None)
+    return None
+
 
 def build_unknown_error_embed(error: Exception) -> discord.Embed:
     return discord.Embed(
@@ -31,22 +45,11 @@ def build_unknown_error_embed(error: Exception) -> discord.Embed:
         text="Please report this to the developers if it keeps happening."
     )
 
-def build_eval_embed(input_code: str, output: str, success: bool = True) -> discord.Embed:
-    color = discord.Color.green() if success else discord.Color.red()
-    title = "✅ Eval Result" if success else "❌ Eval Error"
-
-    embed = discord.Embed(
-        title=title,
-        color=color
-    )
-
-    embed.add_field(name="📥 Input", value=f"```py\n{input_code}```", inline=False)
-    embed.add_field(name="📤 Output", value=f"```py\n{output}```", inline=False)
-
-    return embed
-
 def has_mod_permissions(member):
-    admin_role = discord.utils.get(member.guild.roles, id=load_config_value('admin'))
-    mod_role = discord.utils.get(member.guild.roles, id=load_config_value('mod'))
-    botdev_role = discord.utils.get(member.guild.roles, id=load_config_value('botDev'))
-    return admin_role in member.roles or mod_role in member.roles or botdev_role in member.roles
+    admin_role = discord.utils.get(member.guild.roles, id=load_role_id('admin'))
+    mod_role = discord.utils.get(member.guild.roles, id=load_role_id('mod'))
+    return admin_role in member.roles or mod_role in member.roles
+
+def has_bot_dev_permissions(member):
+    bot_dev_role = discord.utils.get(member.guild.roles, id=load_role_id('botDev'))
+    return bot_dev_role in member.roles if bot_dev_role else False

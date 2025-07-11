@@ -15,7 +15,7 @@ class SlashDev(commands.Cog):
     async def gitpull(self, interaction: discord.Interaction):
         await interaction.response.defer()
         # can only be run by Han or rowletowl
-        if interaction.user.id in ug.load_config_value("superUsers"):
+        if interaction.user.id in ug.load_role_id("superUsers"):
             try:
                 result = subprocess.run(
                     ["git", "pull"],
@@ -38,5 +38,5 @@ class SlashDev(commands.Cog):
 
 async def setup(client: commands.Bot):
     await client.add_cog(
-        SlashDev(client), guild=discord.Object(id=os.getenv("GUILD_ID"))
+        SlashDev(client), guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID"))
     )

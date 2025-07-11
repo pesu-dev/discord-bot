@@ -39,7 +39,6 @@ class SlashMod(commands.Cog):
         
     @tasks.loop(seconds=30)
     async def check_mutes_loop(self):
-        #print("checking for expired mutes")
         now = datetime.now(dt.timezone.utc)
         expired_mutes = await mute_collection.find({
             "unmute_time": {"$lte": now},
@@ -47,7 +46,7 @@ class SlashMod(commands.Cog):
         }).to_list(length=100)
 
         for mute in expired_mutes:
-            guild = self.bot.get_guild(mute["guild_id"])
+            guild = self.bot.get_guild(ug.load_config_value("GUILD", {}).get("ID"))
             if not guild:
                 continue
 
@@ -64,7 +63,7 @@ class SlashMod(commands.Cog):
                 )
                 continue
 
-            muted_role = discord.utils.get(guild.roles, id=int(ug.load_config_value("muted")))
+            muted_role = discord.utils.get(guild.roles, id=int(ug.load_role_id('muted')))
             if muted_role and muted_role in member.roles:
                 try:
                     await member.remove_roles(muted_role)
@@ -88,19 +87,23 @@ class SlashMod(commands.Cog):
                     timestamp=now
                 )
                 unmute_embed.add_field(name="Unmuted user", value=f"{member.mention} welcome back", inline=False)
+                unmute_embed.set_footer(text="PESU Bot")
                 try:
                     await channel.send(content=f"{member.mention}", embed=unmute_embed)
                 except discord.HTTPException:
                     pass
 
-            mod_logs = guild.get_channel(int(ug.load_config_value("modlogs")))
+            mod_logs = guild.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
             if mod_logs:
                 unmute_logs_embed = discord.Embed(
                     title="Unmute",
                     color=discord.Color.green(),
                     timestamp=now
                 )
+                
                 unmute_logs_embed.add_field(name="Unmuted user", value=f"{member.mention}\nModerator: Auto", inline=False)
+                unmute_logs_embed.set_footer(text="PESU Bot")
+                
                 try:
                     await mod_logs.send(embed=unmute_logs_embed)
                 except discord.HTTPException:
@@ -142,19 +145,20 @@ class SlashMod(commands.Cog):
             description=f"{member.mention} was kicked by {interaction.user.mention}\n**Reason:** {reason}",
             timestamp=datetime.now()
         )
+        embed.set_footer(text="PESU Bot")
         await interaction.response.send_message(embed=embed)
-        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs_channel = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs_channel:
             await mod_logs_channel.send(embed=embed)
         else:
-            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+            print(f"Mod logs channel not found: {ug.load_channel_id('modlogs', logs=True)}")
 
 
     @app_commands.command(name="echo", description="Echoes a message to the target channel")
     @app_commands.describe(channel="The channel to send the message to", message="The message to send", attachment="An optional attachment to send with the message")
     async def echo(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str, attachment: discord.Attachment =None):
         await interaction.response.defer(ephemeral=True)
-        if not ug.has_mod_permissions(interaction.user):
+        if not ug.has_mod_permissions(interaction.user) and not ug.has_bot_dev_permissions(interaction.user):
             return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
         if not attachment:
             await channel.send(message)
@@ -231,7 +235,7 @@ class SlashMod(commands.Cog):
         reason="Reason for the mute"
     )
     async def mute(self, interaction: discord.Interaction, member: discord.Member, time: str, reason: str = "No reason provided"):
-        muted_role = discord.utils.get(interaction.guild.roles, id=int(ug.load_config_value('muted')))
+        muted_role = discord.utils.get(interaction.guild.roles, id=int(ug.load_role_id('muted')))
         if interaction.user.id == member.id:
             is_self_mute = True
         else:
@@ -275,13 +279,11 @@ class SlashMod(commands.Cog):
 
         mute_record = {
             'user_id': member.id,
-            'guild_id': interaction.guild.id,
             'channel_id': interaction.channel.id,
             'moderator_id': interaction.user.id,  
             'mute_time': mute_time,
             'unmute_time': unmute_time,
             'duration_seconds': seconds,
-            'duration_string': time,
             'reason': reason,
             'active': True,
             'is_self_mute': is_self_mute
@@ -299,10 +301,10 @@ class SlashMod(commands.Cog):
             value=f"{member.mention} was muted\nUnmute <t:{unmute_timestamp}:R>",
             inline=False
         )
-        
+        mute_embed.set_footer(text="PESU Bot")
         await interaction.followup.send(embed=mute_embed)
 
-        mod_logs = interaction.guild.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs = interaction.guild.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs:
             mute_logs_embed = discord.Embed(
                 title="Mute",
@@ -315,6 +317,7 @@ class SlashMod(commands.Cog):
                 value=f"{member.mention}\nTime: {time}\nReason: {reason}\nModerator: {moderator_mention}",
                 inline=False
             )
+            mute_logs_embed.set_footer(text="PESU Bot")
             await mod_logs.send(embed=mute_logs_embed)
 
     @mute.error
@@ -341,7 +344,7 @@ class SlashMod(commands.Cog):
             await interaction.response.send_message("You are not authorised to do this", ephemeral=True)
             return
 
-        muted_role = discord.utils.get(interaction.guild.roles, id=int(ug.load_config_value('muted')))
+        muted_role = discord.utils.get(interaction.guild.roles, id=int(ug.load_role_id('muted')))
 
         if muted_role not in member.roles:
             await interaction.response.send_message("Why you trynna unmute someone who ain't muted?", ephemeral=True)
@@ -361,17 +364,19 @@ class SlashMod(commands.Cog):
             color=discord.Color.green(),
             timestamp=datetime.now(dt.timezone.utc)
         )
+        unmute_embed.set_footer(text="PESU Bot")
         unmute_embed.add_field(name="Unmuted user", value=f"{member.mention} welcome back", inline=False)
         
         await interaction.followup.send(embed=unmute_embed)
 
-        mod_logs = interaction.guild.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs = interaction.guild.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs:
             unmute_logs_embed = discord.Embed(
                 title="Unmute",
                 color=discord.Color.green(),
                 timestamp=datetime.now(dt.timezone.utc)
             )
+            unmute_logs_embed.set_footer(text="PESU Bot")
             unmute_logs_embed.add_field(
                 name="Unmuted user", 
                 value=f"{member.mention}\nModerator: {interaction.user.mention}",
@@ -417,11 +422,12 @@ class SlashMod(commands.Cog):
             description=f"{len(deleted)} messages were deleted in {interaction.channel.mention} by {interaction.user.mention}",
             timestamp=datetime.now()
         )
-        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        embed.set_footer(text="PESU Bot")
+        mod_logs_channel = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs_channel:
             await mod_logs_channel.send(embed=embed)
         else:
-            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+            print(f"Mod logs channel not found: {ug.load_channel_id('modlogs', logs=True)}")
 
     @purge.error
     async def purge_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -467,6 +473,7 @@ class SlashMod(commands.Cog):
             description=reason,
             timestamp=datetime.now(dt.timezone.utc)
         )
+        lock_embed.set_footer(text="PESU Bot")
         await channel.send(embed=lock_embed)
 
         lock_logs_embed = discord.Embed(
@@ -474,14 +481,15 @@ class SlashMod(commands.Cog):
             color=discord.Color.red(),
             timestamp=datetime.now(dt.timezone.utc)
         )
+        lock_logs_embed.set_footer(text="PESU Bot")
         lock_logs_embed.add_field(name="Channel", value=channel.mention, inline=True)
         lock_logs_embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
         lock_logs_embed.add_field(name="Reason", value=reason, inline=False)
-        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs_channel = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs_channel:
             await mod_logs_channel.send(embed=lock_logs_embed)
         else:
-            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+            print(f"Mod logs channel not found: {ug.load_channel_id('modlogs', logs=True)}")
 
     @lock_channel.error
     async def lock_channel_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -528,6 +536,7 @@ class SlashMod(commands.Cog):
             color=discord.Color.green(),
             timestamp=datetime.now(dt.timezone.utc)
         )
+        unlock_embed.set_footer(text="PESU Bot")
         await channel.send(embed=unlock_embed)
 
         unlock_logs_embed = discord.Embed(
@@ -535,13 +544,14 @@ class SlashMod(commands.Cog):
             color=discord.Color.green(),
             timestamp=datetime.now(dt.timezone.utc)
         )
+        unlock_logs_embed.set_footer(text="PESU Bot")
         unlock_logs_embed.add_field(name="Channel", value=channel.mention, inline=True)
         unlock_logs_embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
-        mod_logs_channel = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs_channel = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs_channel:
             await mod_logs_channel.send(embed=unlock_logs_embed)
         else:
-            print(f"Mod logs channel not found: {ug.load_config_value('modlogs')}")
+            print(f"Mod logs channel not found: {ug.load_channel_id('modlogs', logs=True)}")
 
     
     @unlock_channel.error
@@ -606,7 +616,7 @@ class SlashMod(commands.Cog):
             color=0x8B0000,
             timestamp=utcnow()
         )
-        
+        timeout_embed.set_footer(text="PESU Bot")
         timeout_timestamp = int(timeout_until.timestamp())
         timeout_embed.add_field(
             name="Timed-out Member", 
@@ -616,7 +626,7 @@ class SlashMod(commands.Cog):
         
         await interaction.followup.send(embed=timeout_embed)
 
-        mod_logs = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs:
             timeout_logs_embed = discord.Embed(
                 title="Time-out",
@@ -628,6 +638,7 @@ class SlashMod(commands.Cog):
                 value=f"{member.mention}\nTime: {time}\nReason: {reason}\nModerator: {interaction.user.mention}",
                 inline=False
             )
+            timeout_logs_embed.set_footer(text="PESU Bot")
             await mod_logs.send(embed=timeout_logs_embed)
 
     @timeout_member.error
@@ -670,21 +681,24 @@ class SlashMod(commands.Cog):
             color=0x00FF00, 
             timestamp=utcnow()
         )
+        detimeout_embed.set_footer(text="PESU Bot")
         detimeout_embed.add_field(
             name="De-timed-out Member", 
             value=f"{member.mention}, welcome back",
             inline=False
         )
+
         
         await interaction.followup.send(content=f"{member.mention}", embed=detimeout_embed)
 
-        mod_logs = self.bot.get_channel(int(ug.load_config_value('modlogs')))
+        mod_logs = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))
         if mod_logs:
             detimeout_logs_embed = discord.Embed(
                 title="De-time-out",
                 color=0x00FF00,
                 timestamp=utcnow()
             )
+            detimeout_logs_embed.set_footer(text="PESU Bot")
             detimeout_logs_embed.add_field(
                 name="De-timed-out User", 
                 value=f"{member.mention}\nModerator: {interaction.user.mention}",
@@ -713,4 +727,4 @@ class SlashMod(commands.Cog):
 
 async def setup(client: commands.Bot):
     await client.add_cog(
-        SlashMod(client), guild=discord.Object(id=os.getenv("GUILD_ID")))
+        SlashMod(client), guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")))

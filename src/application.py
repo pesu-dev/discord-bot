@@ -6,6 +6,7 @@ from discord import Intents
 from discord.ext import commands
 from pathlib import Path
 from discord.app_commands import CommandTree
+from utils import general as ug
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -40,7 +41,7 @@ async def on_ready():
             logging.getLogger("discord").error(f"Failed to load {cog}: {e}")
 
     # Sync commands
-    await client.tree.sync(guild=discord.Object(id=os.getenv("GUILD_ID")))
+    await client.tree.sync(guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")))
     logger.info("Synced commands")
 
     # Set status

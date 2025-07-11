@@ -43,13 +43,6 @@ class HelpEmbeds:
             discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Purge", value="`/purge`", inline=False),
         ]
-
-        self.dev = [
-            discord.Embed(title="PESU Bot", description="Dev", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Echo", value="`/echo`", inline=False)
-            .add_field(name="Eval", value="`/eval`", inline=False)
-            .add_field(name="Git pull", value="`/gitpull`", inline=False),
-        ]
     def get_embeds(self, category: str):
         return getattr(self, category.lower(), self.general)
 class HelpView(discord.ui.View):
@@ -71,7 +64,7 @@ class HelpView(discord.ui.View):
     def get_embed(self):
         embed = self.embeds[self.page]
         total_pages = len(self.embeds)
-        embed.set_footer(text=f"Page {self.page + 1}/{total_pages}")
+        embed.set_footer(text=f"PESU Bot | Page {self.page + 1}/{total_pages}")
         return embed
     
     async def on_timeout(self):
@@ -137,8 +130,9 @@ class SlashHelp(commands.Cog):
     async def help_command(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
-        if any(role.id == ug.load_config_value("just_joined") for role in interaction.user.roles):
-            embed = discord.Embed(title="PESU Bot", description=f"Visit <#{ug.load_config_value('welcomeChannel')}> to get verified first!", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+        if any(role.id == ug.load_role_id("just_joined") for role in interaction.user.roles):
+            embed = discord.Embed(title="PESU Bot", description=f"Visit <#{ug.load_channel_id('welcomeChannel')}> to get verified first!", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+            embed.set_footer(text="PESU Bot")
             await interaction.followup.send(embed=embed)
             return
 
@@ -152,4 +146,4 @@ class SlashHelp(commands.Cog):
 
 
 async def setup(client: commands.Bot):
-    await client.add_cog(SlashHelp(client), guild=discord.Object(id=os.getenv("GUILD_ID")))
+    await client.add_cog(SlashHelp(client), guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")))
