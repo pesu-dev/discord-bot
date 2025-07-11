@@ -1,6 +1,6 @@
 {  
      "GUILD":{   
-        "everyone":0,
+        "GUILd_ID":0,
         "ROLES":{
             "admin": 1387103854381760553,
             "mod": 1387103950099972268,
@@ -28,9 +28,5 @@
                 "ID": 1368604372581486634
             } 
         }, 
-
-        "_comment1": "this config is currently configured for testing purposes only"
-
-    
     }
 }
