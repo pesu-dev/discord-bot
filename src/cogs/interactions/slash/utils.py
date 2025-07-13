@@ -108,7 +108,7 @@ class SlashUtils(commands.Cog):
     async def support(self, interaction: discord.Interaction):
         await interaction.response.defer()
         await interaction.followup.send(
-            content="You can contribute to the bot here\nhttps://github.com/nostorian/pesu-bot")
+            content="You can contribute to the bot here\nhttps://github.com/pesu-dev/discord-bot")
         
     @support.error
     async def support_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -211,7 +211,7 @@ class SlashUtils(commands.Cog):
     @app_commands.command(name="addroles", description="Pick up additional roles to get access to more channels")
     @app_commands.describe(channel="The channel to send the role selection in (default: current channel)")
     async def addroles_command(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         if not ug.has_mod_permissions(interaction.user):
             await interaction.followup.send(
                 content="Not to you lol", ephemeral=True
