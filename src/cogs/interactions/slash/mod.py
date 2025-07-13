@@ -138,7 +138,7 @@ class SlashMod(commands.Cog):
             title="Member Kicked",
             color=discord.Color.red(),
             description=f"{member.mention} was kicked by {interaction.user.mention}\n**Reason:** {reason}",
-            timestamp=datetime.now()
+            timestamp=discord.utils.utcnow()
         )
         embed.set_footer(text="PESU Bot")
         await interaction.response.send_message(embed=embed)
@@ -415,7 +415,7 @@ class SlashMod(commands.Cog):
             title="Messages Purged",
             color=discord.Color.green(),
             description=f"{len(deleted)} messages were deleted in {interaction.channel.mention} by {interaction.user.mention}",
-            timestamp=datetime.now()
+            timestamp=discord.utils.utcnow()
         )
         embed.set_footer(text="PESU Bot")
         mod_logs_channel = self.bot.get_channel(int(ug.load_channel_id('modlogs', logs=True)))

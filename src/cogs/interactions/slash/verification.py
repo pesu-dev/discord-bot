@@ -30,10 +30,13 @@ class SlashLink(commands.Cog):
             embed.add_field(name="Join", value=f"<t:{unixJoinedTimestamp}:R>", inline=True)
 
         embed.set_footer(text="PESU Bot")
+        embed.timestamp = discord.utils.utcnow()
 
         await interaction.response.send_message(embed=embed)
         if ug.has_mod_permissions(interaction.user):
             newEmbed = discord.Embed(title="Priviliged Info", color=0x48BF91)
+            newEmbed.timestamp = discord.utils.utcnow()
+            newEmbed.set_footer(text="PESU Bot")
             linkRes = await self.link_collection.find_one({"userId": str(user.id)})
 
             if not linkRes:
@@ -45,7 +48,6 @@ class SlashLink(commands.Cog):
                 return await interaction.followup.send(embed=newEmbed, ephemeral=True)
 
             newEmbed.add_field(name="PRN", value=linkRes['prn'], inline=False)
-            newEmbed.set_footer(text="PESU Bot")
 
             await interaction.followup.send(embed=newEmbed, ephemeral=True)
 

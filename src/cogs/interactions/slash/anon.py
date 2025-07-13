@@ -54,6 +54,7 @@ class SlashAnon(commands.Cog):
                         color=discord.Color.green()
                     )
                     embed.set_footer(text="PESU Bot")
+                    embed.timestamp = discord.utils.utcnow()
                     await user.send(embed=embed)
                 except discord.Forbidden:
                     pass
