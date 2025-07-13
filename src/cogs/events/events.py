@@ -1,34 +1,16 @@
 import discord
 from discord.ext import commands
-import json
-import asyncio
+from utils import general as ug
 from datetime import datetime
-
-import os
-with open('config.json', 'r') as f:
-    config = json.load(f)
 
 class Events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_ready(self):
-        bot_logs = self.bot.get_channel(int(config['general']))
-        if bot_logs:
-            await bot_logs.send("Bot is online")
-        
-        await self.bot.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.watching,
-                name="students suffer"
-            )
-        )
-
-    @commands.Cog.listener()
     async def on_member_join(self, member):
-        bot_logs = member.guild.get_channel(int(config['general']))
-        just_joined = member.guild.get_role(int(config['just_joined']))
+        bot_logs = member.guild.get_channel(ug.load_channel_id("logs", logs=True))
+        just_joined = member.guild.get_role(ug.load_role_id("just_joined"))
         
         if bot_logs:
             await bot_logs.send(f"{member.display_name} Joined")
@@ -38,7 +20,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        bot_logs = member.guild.get_channel(int(config['general']))
+        bot_logs = member.guild.get_channel(ug.load_channel_id("logs", logs=True))
         
         if bot_logs:
             await bot_logs.send(f"{member.display_name} left")
@@ -87,7 +69,7 @@ class Events(commands.Cog):
             )
 
         if len(ghost_ping_embed.fields) > 0:
-            mod_logs = message.guild.get_channel(int(config['modlogs']))
+            mod_logs = message.guild.get_channel(ug.load_channel_id("modlogs", logs=True))
             ghost_ping_embed.add_field(
                 name="Message content",
                 value=message.content if message.content else "No content",
@@ -165,7 +147,7 @@ class Events(commands.Cog):
                     inline=False
                 )
 
-                mod_logs = before.guild.get_channel(int(config['modlogs']))
+                mod_logs = before.guild.get_channel(ug.load_channel_id("modlogs", logs=True))
                 if mod_logs:
                     await mod_logs.send(embed=ghost_ping_embed)
 
