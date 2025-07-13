@@ -6,47 +6,63 @@ from discord import app_commands
 
 class HelpEmbeds:
     def __init__(self):
-        self.general = [
-            discord.Embed(title="PESU Bot", description="General", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Uptime", value="`/uptime`", inline=False)
+        self.anon = [
+            discord.Embed(title="PESU Bot", description="Anon Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="Send an Anon Message", value="`/anon`", inline=False)
+            .add_field(name="Ban User from an Anon Message", value="`/bananon`", inline=False)
+            .add_field(name="Ban a User", value="`/userbananon`", inline=False),
+
+            discord.Embed(title="PESU Bot", description="Anon Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="Unban a User", value="`/userunbananon`", inline=False)
+            .add_field(name="Get Ban Info of a User", value="`/anonbaninfo`", inline=False),
+        ]
+
+        self.utils = [
+            discord.Embed(title="PESU Bot", description="Utility Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Ping", value="`/ping`", inline=False)
+            .add_field(name="Uptime", value="`/uptime`", inline=False)
             .add_field(name="Support", value="`/support`", inline=False),
 
-            discord.Embed(title="PESU Bot", description="General", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Poll", value="`/spotify`", inline=False)
+            discord.Embed(title="PESU Bot", description="Utility Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Count", value="`/count`", inline=False)
-            .add_field(name="Additional Roles", value="`/addroles`", inline=False),
+            .add_field(name="Spotify", value="`/spotify`", inline=False)
+            .add_field(name="Add Roles", value="`/addroles`", inline=False),
 
-            discord.Embed(title="PESU Bot", description="General", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Help", value="`/help`", inline=False)
+            discord.Embed(title="PESU Bot", description="Utility Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
             .add_field(name="Pride", value="`/pride`", inline=False)
+            .add_field(name="FAQ", value="`/faq`", inline=False)
         ]
 
-        self.data = [
-            discord.Embed(title="PESU Bot", description="Data", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Info", value="`/info`", inline=False)
-            .add_field(name="Deverify", value="`/deverify`", inline=False)
-            .add_field(name="File", value="`/file`", inline=False),
+        self.mod = [
+            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="Kick a User", value="`/kick`", inline=False)
+            .add_field(name="Echo a Message", value="`/echo`", inline=False)
+            .add_field(name="Change User's nick", value="`/changenick`", inline=False),
+
+            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="Mute a User", value="`/mute`", inline=False)
+            .add_field(name="Unmute a User", value="`/unmute`", inline=False)
+            .add_field(name="Purge Messages", value="`/purge`", inline=False),
+
+            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="Lock a Channel", value="`/lock`", inline=False)
+            .add_field(name="Unlock a Channel", value="`/unlock`", inline=False)
+            .add_field(name="Timeout a User", value="`/timeout`", inline=False),
+
+            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="De-timeout a User", value="`/detimeout`", inline=False)
         ]
 
-        self.moderation = [
-            discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Kick", value="`/kick`", inline=False)
-            .add_field(name="Ban", value="`/ban`", inline=False)
-            .add_field(name="Lock", value="`/lock`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Unlock", value="`/unlock`", inline=False)
-            .add_field(name="Timeout", value="`/timeout`", inline=False)
-            .add_field(name="De-Timeout", value="`/detimeout`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Moderation", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="Purge", value="`/purge`", inline=False),
+        self.link = [
+            discord.Embed(title="PESU Bot", description="Link Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            .add_field(name="Get Info about a User", value="`/info`", inline=False)
+            .add_field(name="De-link a User", value="`/delink`", inline=False)
         ]
+
     def get_embeds(self, category: str):
-        return getattr(self, category.lower(), self.general)
+        return getattr(self, category.lower(), self.anon)
 class HelpView(discord.ui.View):
-    def __init__(self, interaction: discord.Interaction, category: str = "general", page: int = 0):
+    def __init__(self, interaction: discord.Interaction, category: str = "anon", page: int = 0):
         super().__init__(timeout=60)
         self.interaction = interaction
         self.category = category.lower()
@@ -81,10 +97,10 @@ class HelpView(discord.ui.View):
 class HelpSelect(discord.ui.Select):
     def __init__(self, current_category: str):
         options = [
-            discord.SelectOption(label="General", value="general", emoji="🖖"),
-            discord.SelectOption(label="Data", value="data", emoji="📃"),
-            discord.SelectOption(label="Moderation", value="moderation", emoji="👮"),
-            discord.SelectOption(label="Dev", value="dev", emoji="💻"),
+            discord.SelectOption(label="Anonymous Commands", value="anon", emoji="🖖"),
+            discord.SelectOption(label="Utility Commands", value="utils", emoji="⚙️"),
+            discord.SelectOption(label="Moderation Commands", value="mod", emoji="👮"),
+            discord.SelectOption(label="Link Commands", value="link", emoji="🔗"),
         ]
         super().__init__(placeholder="Select category", options=options)
         self.current_category = current_category
@@ -136,7 +152,7 @@ class SlashHelp(commands.Cog):
             await interaction.followup.send(embed=embed)
             return
 
-        view = HelpView(interaction, category="general", page=0)
+        view = HelpView(interaction, category="anon", page=0)
         message = await interaction.followup.send(embed=view.get_embed(), view=view)
         view.message = message
 
