@@ -6,6 +6,7 @@ from discord import Intents
 from discord.ext import commands
 from pathlib import Path
 from discord.app_commands import CommandTree
+import motor.motor_asyncio as motor
 from utils import general as ug
 from dotenv import load_dotenv
 
@@ -18,13 +19,27 @@ client = commands.Bot(
     tree_cls=CommandTree,
 )
 
+connection = ""
+
+try:
+    client.mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"), tz_aware=True)
+    client.db = client.mongo_client[os.getenv("DB_NAME")]
+    client.link_collection = client.db["Link"]
+    client.student_collection = client.db["Student"]
+    client.anonban_collection = client.db["AnonBan"]
+    client.mute_collection = client.db["mute"]
+    
+    connection = "Connected to MongoDB"
+except Exception as e:
+    connection = f"Failed to connect to MongoDB: {e}"
+
 
 @client.event
 async def on_ready():
-    await client.wait_until_ready()
     client.startTime = time.time()
     logger = logging.getLogger("discord")
     logger.info(f"Logged in as {client.user.name} ({client.user.id})")
+    logging.getLogger("discord.client").info(connection)
 
     # Load cogs
     for path in Path("cogs").rglob("*.py"):
@@ -52,6 +67,7 @@ async def on_ready():
         )
     )
     logger.info("Set status")
+
 
     logger.info("Bot is ready")
 

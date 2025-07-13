@@ -4,19 +4,14 @@ import datetime as dt
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta
-import motor.motor_asyncio as motor
 from discord.utils import utcnow
 from utils import general as ug
 
 
-
-mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
-db = mongo_client[os.getenv("DB_NAME")]
-mute_collection = db['mute']
-
 class SlashMod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.mute_collection = getattr(self.bot, "mute_collection", None)
         if not self.check_mutes_loop.is_running():
             self.check_mutes_loop.start()
 
@@ -40,7 +35,7 @@ class SlashMod(commands.Cog):
     @tasks.loop(seconds=30)
     async def check_mutes_loop(self):
         now = datetime.now(dt.timezone.utc)
-        expired_mutes = await mute_collection.find({
+        expired_mutes = await self.mute_collection.find({
             "unmute_time": {"$lte": now},
             "active": True
         }).to_list(length=100)
@@ -53,7 +48,7 @@ class SlashMod(commands.Cog):
             try:
                 member = await guild.fetch_member(mute["user_id"])
             except discord.NotFound:
-                await mute_collection.update_one(
+                await self.mute_collection.update_one(
                     {"_id": mute["_id"]},
                     {"$set": {
                         "active": False,
@@ -70,7 +65,7 @@ class SlashMod(commands.Cog):
                 except discord.HTTPException:
                     continue
 
-            await mute_collection.update_one(
+            await self.mute_collection.update_one(
                 {"_id": mute["_id"]},
                 {"$set": {
                     "active": False,
@@ -288,7 +283,7 @@ class SlashMod(commands.Cog):
             'active': True,
             'is_self_mute': is_self_mute
         }
-        await mute_collection.insert_one(mute_record)
+        await self.mute_collection.insert_one(mute_record)
 
         mute_embed = discord.Embed(
             title="Mute",
@@ -354,7 +349,7 @@ class SlashMod(commands.Cog):
 
         await member.remove_roles(muted_role)
 
-        await mute_collection.update_many(
+        await self.mute_collection.update_many(
             {'user_id': member.id, 'guild_id': interaction.guild.id, 'active': True},
             {'$set': {'active': False, 'unmute_time': datetime.now(dt.timezone.utc), 'unmute_type': 'manual', 'unmuted_by': interaction.user.id}}
         )

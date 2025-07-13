@@ -3,14 +3,8 @@ import discord
 import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
-import motor.motor_asyncio as motor
 from utils import general as ug
 from typing import Optional
-
-mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"), tz_aware=True)
-db = mongo_client[os.getenv("DB_NAME")]
-link_collection = db["Link"]
-anonban_collection = db["AnonBan"]
 
 
 
@@ -18,6 +12,8 @@ class SlashAnon(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
         self.anon_cache = {}
+        self.anonban_collection = getattr(self.client, "anonban_collection", None)
+        self.link_collection = getattr(self.client, "link_collection", None)
         self.ctx_menu = app_commands.ContextMenu(
             name='Ban this anon',
             callback=self.anon_ban_from_context_menu,
@@ -47,8 +43,8 @@ class SlashAnon(commands.Cog):
     @tasks.loop(seconds=30)
     async def check_anon_bans_loop(self):
         current_time = datetime.datetime.now(datetime.timezone.utc)
-        async for ban in anonban_collection.find({"expiresAt": {"$lt": current_time}, "active": True}):
-            await anonban_collection.update_one({"_id": ban["_id"]}, {"$set": {"active": False}})
+        async for ban in self.anonban_collection.find({"expiresAt": {"$lt": current_time}, "active": True}):
+            await self.anonban_collection.update_one({"_id": ban["_id"]}, {"$set": {"active": False}})
             user = await self.client.fetch_user(ban["userId"])
             if user:
                 try:
@@ -66,7 +62,7 @@ class SlashAnon(commands.Cog):
     @app_commands.describe(message="The message you want to send", link="Message link you want to reply to")
     async def anon(self, interaction: discord.Interaction, message: str, link: Optional[str] = None):
         await interaction.response.defer(ephemeral=True)
-        userBanCheck = await anonban_collection.find_one({"userId": str(interaction.user.id), "active": True})
+        userBanCheck = await self.anonban_collection.find_one({"userId": str(interaction.user.id), "active": True})
         if userBanCheck:
             return await interaction.followup.send(f":x: You have been banned from using anon messaging", ephemeral=True)
 
@@ -76,7 +72,7 @@ class SlashAnon(commands.Cog):
             return await interaction.followup.send("Looks like the channel is locked or you're muted. I won't send", ephemeral=True)
         
         
-        userVerifyCheck = await link_collection.find_one({"userId": str(interaction.user.id)})
+        userVerifyCheck = await self.link_collection.find_one({"userId": str(interaction.user.id)})
         if not userVerifyCheck:
             return await interaction.followup.send("You're not verified, so you can't use anon messaging. If this is a mistake, please contact Han", ephemeral=True)
         
@@ -148,7 +144,7 @@ class SlashAnon(commands.Cog):
             return await interaction.followup.send("Could not find the user to ban", ephemeral=True)
         
 
-        userBanCheck = await anonban_collection.find_one({"userId": str(banUser.id), "active": True})
+        userBanCheck = await self.anonban_collection.find_one({"userId": str(banUser.id), "active": True})
         if userBanCheck:
             return await interaction.followup.send(f"Dude's already banned from anon messaging", ephemeral=True)
         
@@ -170,7 +166,7 @@ class SlashAnon(commands.Cog):
             "expiresAt": expiresAt,
             "active": True,
         }
-        await anonban_collection.insert_one(ban_data)
+        await self.anonban_collection.insert_one(ban_data)
 
         await interaction.followup.send(f"Member has been banned from anon messaging, their ban will expire <t:{int(ban_data['expiresAt'].timestamp())}:R>\nReason: {reason}")
 
@@ -208,13 +204,13 @@ class SlashAnon(commands.Cog):
             if not banUser:
                 return await interaction.followup.send("Could not find the user to ban", ephemeral=True)
 
-            userBanCheck = await anonban_collection.find_one({"userId": str(banUser.id), "active": True})
+            userBanCheck = await self.anonban_collection.find_one({"userId": str(banUser.id), "active": True})
             if userBanCheck:
                 return await interaction.followup.send(f"Dude's already banned from anon messaging", ephemeral=True)
             
             bannedAt = datetime.datetime.now(datetime.timezone.utc)
             defaultExpiry = bannedAt + datetime.timedelta(weeks=1)
-            await anonban_collection.insert_one({
+            await self.anonban_collection.insert_one({
                 "userId": str(banUser.id),
                 "reason": "No reason provided, executed via context menu",
                 "bannedAt": bannedAt,
@@ -249,7 +245,7 @@ class SlashAnon(commands.Cog):
         if not ug.has_mod_permissions(interaction.user):
             return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
 
-        userBanCheck =await anonban_collection.find_one({"userId": str(member.id), "active": True})
+        userBanCheck =await self.anonban_collection.find_one({"userId": str(member.id), "active": True})
         if userBanCheck:
             return await interaction.followup.send("Dude's already banned from anon messaging", ephemeral=True)
         
@@ -271,7 +267,7 @@ class SlashAnon(commands.Cog):
             "expiresAt": expiry,
             "active": True
         }
-        await anonban_collection.insert_one(ban_data)
+        await self.anonban_collection.insert_one(ban_data)
         await interaction.followup.send(f"Member has been banned from anon messaging\nReason: {reason}")
 
         try:
@@ -300,9 +296,9 @@ class SlashAnon(commands.Cog):
         if not ug.has_mod_permissions(interaction.user):
             return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
 
-        #result = await anonban_collection.find_one_and_delete({"userId": str(member.id)})
+        #result = await self.anonban_collection.find_one_and_delete({"userId": str(member.id)})
         # set active to false instead of deleting the document
-        result = await anonban_collection.find_one_and_update(
+        result = await self.anonban_collection.find_one_and_update(
             {"userId": str(member.id), "active": True},
             {"$set": {"active": False}}
         )
@@ -335,7 +331,7 @@ class SlashAnon(commands.Cog):
         if not ug.has_mod_permissions(interaction.user):
             return await interaction.followup.send("You ain't authorised to run this command", ephemeral=True)
 
-        userBanCheck = await anonban_collection.find_one({"userId": str(member.id), "active": True})
+        userBanCheck = await self.anonban_collection.find_one({"userId": str(member.id), "active": True})
         if not userBanCheck:
             return await interaction.followup.send("This fellow is not banned from anon messaging", ephemeral=True)
 

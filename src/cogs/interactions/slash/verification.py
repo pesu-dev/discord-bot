@@ -3,18 +3,13 @@ import time
 import discord
 from discord import app_commands
 from discord.ext import commands
-import motor.motor_asyncio as motor
 from utils import general as ug
-
-mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_URI"))
-db = mongo_client[os.getenv("DB_NAME")]
-link_collection = db["Link"]
-student_collection = db["Student"]
 
 
 class SlashLink(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
+        self.link_collection = getattr(self.client, "link_collection", None)
 
     @app_commands.command(name="info", description="Get linking info about a user")
     @app_commands.describe(user="User to fetch info about")
@@ -39,7 +34,7 @@ class SlashLink(commands.Cog):
         await interaction.response.send_message(embed=embed)
         if ug.has_mod_permissions(interaction.user):
             newEmbed = discord.Embed(title="Priviliged Info", color=0x48BF91)
-            linkRes = await link_collection.find_one({"userId": str(user.id)})
+            linkRes = await self.link_collection.find_one({"userId": str(user.id)})
 
             if not linkRes:
                 newEmbed.add_field(name="Status", value="This user is not linked yet", inline=False)
@@ -73,7 +68,7 @@ class SlashLink(commands.Cog):
             return await interaction.response.send_message("You are not authorised to run this command", ephemeral=True)
 
         await interaction.response.defer()
-        result = await link_collection.delete_one({"userId": str(user.id)})
+        result = await self.link_collection.delete_one({"userId": str(user.id)})
         if result.deleted_count == 0:
             return await interaction.followup.send("This user was not linked in the first place", ephemeral=True)
         
