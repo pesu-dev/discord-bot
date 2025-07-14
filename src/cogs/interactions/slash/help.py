@@ -1,73 +1,125 @@
-import os
 import discord
 import utils.general as ug
 from discord.ext import commands
 from discord import app_commands
+from typing import Optional
+
 
 class HelpEmbeds:
     def __init__(self):
         self.anon = [
-            discord.Embed(title="PESU Bot", description="Anon Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Anon Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Send an Anon Message", value="`/anon`", inline=False)
-            .add_field(name="Ban User from an Anon Message", value="`/bananon`", inline=False)
+            .add_field(
+                name="Ban User from an Anon Message", value="`/bananon`", inline=False
+            )
             .add_field(name="Ban a User", value="`/userbananon`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Anon Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Anon Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Unban a User", value="`/userunbananon`", inline=False)
-            .add_field(name="Get Ban Info of a User", value="`/anonbaninfo`", inline=False),
+            .add_field(
+                name="Get Ban Info of a User", value="`/anonbaninfo`", inline=False
+            ),
         ]
 
         self.utils = [
-            discord.Embed(title="PESU Bot", description="Utility Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Utility Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Ping", value="`/ping`", inline=False)
             .add_field(name="Uptime", value="`/uptime`", inline=False)
             .add_field(name="Support", value="`/support`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Utility Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Utility Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Count", value="`/count`", inline=False)
             .add_field(name="Spotify", value="`/spotify`", inline=False)
             .add_field(name="Add Roles", value="`/addroles`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Utility Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Utility Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Pride", value="`/pride`", inline=False)
-            .add_field(name="FAQ", value="`/faq`", inline=False)
+            .add_field(name="FAQ", value="`/faq`", inline=False),
         ]
 
         self.mod = [
-            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Mod Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Kick a User", value="`/kick`", inline=False)
             .add_field(name="Echo a Message", value="`/echo`", inline=False)
             .add_field(name="Change User's nick", value="`/changenick`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Mod Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Mute a User", value="`/mute`", inline=False)
             .add_field(name="Unmute a User", value="`/unmute`", inline=False)
             .add_field(name="Purge Messages", value="`/purge`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Mod Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Lock a Channel", value="`/lock`", inline=False)
             .add_field(name="Unlock a Channel", value="`/unlock`", inline=False)
             .add_field(name="Timeout a User", value="`/timeout`", inline=False),
-
-            discord.Embed(title="PESU Bot", description="Mod Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
-            .add_field(name="De-timeout a User", value="`/detimeout`", inline=False)
+            discord.Embed(
+                title="PESU Bot",
+                description="Mod Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            ).add_field(name="De-timeout a User", value="`/detimeout`", inline=False),
         ]
 
         self.link = [
-            discord.Embed(title="PESU Bot", description="Link Commands", color=discord.Color.dark_purple(), timestamp=discord.utils.utcnow())
+            discord.Embed(
+                title="PESU Bot",
+                description="Link Commands",
+                color=discord.Color.dark_purple(),
+                timestamp=discord.utils.utcnow(),
+            )
             .add_field(name="Get Info about a User", value="`/info`", inline=False)
             .add_field(name="De-link a User", value="`/delink`", inline=False)
         ]
 
     def get_embeds(self, category: str):
         return getattr(self, category.lower(), self.anon)
+
+
 class HelpView(discord.ui.View):
-    def __init__(self, interaction: discord.Interaction, category: str = "anon", page: int = 0):
+    def __init__(
+        self, interaction: discord.Interaction, category: str = "anon", page: int = 0
+    ):
         super().__init__(timeout=60)
         self.interaction = interaction
         self.category = category.lower()
         self.page = page
-        self.message = None
+        self.message: Optional[discord.Message] = None
         self.embeds = HelpEmbeds().get_embeds(self.category)
         self.update_buttons()
 
@@ -82,15 +134,16 @@ class HelpView(discord.ui.View):
         total_pages = len(self.embeds)
         embed.set_footer(text=f"PESU Bot | Page {self.page + 1}/{total_pages}")
         return embed
-    
+
     async def on_timeout(self):
         for item in self.children:
-            item.disabled = True 
+            if isinstance(item, (discord.ui.Button, discord.ui.Select)):
+                item.disabled = True
 
         if self.message:
             try:
                 await self.message.edit(view=self)
-            except discord.NotFound:
+            except (discord.NotFound, discord.HTTPException):
                 pass
 
 
@@ -106,11 +159,16 @@ class HelpSelect(discord.ui.Select):
         self.current_category = current_category
 
     async def callback(self, interaction: discord.Interaction):
+        if not isinstance(self.view, HelpView):
+            return
+
         self.view.category = self.values[0]
         self.view.page = 0
         self.view.embeds = HelpEmbeds().get_embeds(self.view.category)
         self.view.update_buttons()
-        await interaction.response.edit_message(embed=self.view.get_embed(), view=self.view)
+        await interaction.response.edit_message(
+            embed=self.view.get_embed(), view=self.view
+        )
 
 
 class PrevButton(discord.ui.Button):
@@ -123,7 +181,9 @@ class PrevButton(discord.ui.Button):
         if self.view_ref.page > 0:
             self.view_ref.page -= 1
             self.view_ref.update_buttons()
-            await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
+            await interaction.response.edit_message(
+                embed=self.view_ref.get_embed(), view=self.view_ref
+            )
 
 
 class NextButton(discord.ui.Button):
@@ -136,7 +196,10 @@ class NextButton(discord.ui.Button):
         if self.view_ref.page < len(self.view_ref.embeds) - 1:
             self.view_ref.page += 1
             self.view_ref.update_buttons()
-            await interaction.response.edit_message(embed=self.view_ref.get_embed(), view=self.view_ref)
+            await interaction.response.edit_message(
+                embed=self.view_ref.get_embed(), view=self.view_ref
+            )
+
 
 class SlashHelp(commands.Cog):
     def __init__(self, client: commands.Bot):
@@ -146,8 +209,19 @@ class SlashHelp(commands.Cog):
     async def help_command(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
-        if any(role.id == ug.load_role_id("just_joined") for role in interaction.user.roles):
-            embed = discord.Embed(title="PESU Bot", description=f"Visit <#{ug.load_channel_id('welcomeChannel')}> to get verified first!", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+        if not isinstance(interaction.user, discord.Member):
+            return await interaction.followup.send(
+                "This command can only be used in a server", ephemeral=True
+            )
+        if any(
+            role.id == ug.load_role_id("just_joined") for role in interaction.user.roles
+        ):
+            embed = discord.Embed(
+                title="PESU Bot",
+                description=f"Visit <#{ug.load_channel_id('welcomeChannel')}> to get verified first!",
+                color=discord.Color.red(),
+                timestamp=discord.utils.utcnow(),
+            )
             embed.set_footer(text="PESU Bot")
             embed.timestamp = discord.utils.utcnow()
             await interaction.followup.send(embed=embed)
@@ -158,9 +232,14 @@ class SlashHelp(commands.Cog):
         view.message = message
 
     @help_command.error
-    async def help_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+    async def help_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
 
 async def setup(client: commands.Bot):
-    await client.add_cog(SlashHelp(client), guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")))
+    await client.add_cog(
+        SlashHelp(client),
+        guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")),
+    )

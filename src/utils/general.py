@@ -1,25 +1,22 @@
 import json
 import discord
-from pathlib import Path
+from datetime import datetime
+
 
 def load_config_value(key: str, default=None):
-    for dir in [Path.cwd()] + list(Path.cwd().parents):
-        confipath = dir / "config.json"
-        if confipath.exists():
-            try:
-                with confipath.open("r", encoding="utf-8") as f:
-                    return json.load(f).get(key, default)
-            except json.JSONDecodeError:
-                return default
-    return default
+    with open("config.json", "r") as f:
+        config = json.load(f)
+    return config.get(key, default)
 
-def load_role_id(role_name: str) -> int:
+
+def load_role_id(role_name: str) -> int | None:
     config = load_config_value("GUILD")
     if config and "ROLES" in config:
         return config["ROLES"].get(role_name, None)
     return None
 
-def load_channel_id(channel_name: str, logs: bool = False) -> int:
+
+def load_channel_id(channel_name: str, logs: bool = False) -> int | None:
     config = load_config_value("GUILD")
     if config and "CHANNELS" in config:
         if logs:
@@ -29,27 +26,36 @@ def load_channel_id(channel_name: str, logs: bool = False) -> int:
 
 
 def build_unknown_error_embed(error: Exception) -> discord.Embed:
-    return discord.Embed(
-        title="❗ Unexpected Error",
-        description="Something went wrong while processing the command.",
-        color=discord.Color.red()
-    ).add_field(
-        name="Error Type",
-        value=type(error).__name__,
-        inline=True
-    ).add_field(
-        name="Details",
-        value=str(error)[:1000] or "No details available.",
-        inline=False
-    ).set_footer(
-        text="Please report this to the developers if it keeps happening."
+    return (
+        discord.Embed(
+            title="❗ Unexpected Error",
+            description="Something went wrong while processing the command.",
+            color=discord.Color.red(),
+            timestamp=datetime.now(),
+        )
+        .add_field(name="Error Type", value=type(error).__name__, inline=True)
+        .add_field(
+            name="Details",
+            value=str(error)[:1000] or "No details available.",
+            inline=False,
+        )
+        .add_field(
+            name="Support",
+            value="Please report this to the developers if it keeps happening.",
+            inline=False,
+        )
+        .set_footer(
+            text="PESU Bot",
+        )
     )
 
+
 def has_mod_permissions(member):
-    admin_role = discord.utils.get(member.guild.roles, id=load_role_id('admin'))
-    mod_role = discord.utils.get(member.guild.roles, id=load_role_id('mod'))
+    admin_role = discord.utils.get(member.guild.roles, id=load_role_id("admin"))
+    mod_role = discord.utils.get(member.guild.roles, id=load_role_id("mod"))
     return admin_role in member.roles or mod_role in member.roles
 
+
 def has_bot_dev_permissions(member):
-    bot_dev_role = discord.utils.get(member.guild.roles, id=load_role_id('botDev'))
+    bot_dev_role = discord.utils.get(member.guild.roles, id=load_role_id("botDev"))
     return bot_dev_role in member.roles if bot_dev_role else False
