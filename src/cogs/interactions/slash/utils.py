@@ -95,26 +95,26 @@ class RoleSelect(discord.ui.Select):
                 "This command can only be used in a server", ephemeral=True
             )
         if any(role.id == ug.load_role_id("just_joined") for role in member.roles):
-            await interaction.followup.send("You need to verify yourself first.")
+            await interaction.followup.send("You need to verify yourself first.", ephemeral=True)
             return
 
         if role_id == "0":
-            await interaction.followup.send("OK")
+            await interaction.followup.send("OK", ephemeral=True)
             return
 
         role = interaction.guild.get_role(int(role_id))
         if not role:
-            await interaction.followup.send("Role not found")
+            await interaction.followup.send("Role not found", ephemeral=True)
             return
 
         if role in member.roles:
             await member.remove_roles(role)
             await interaction.followup.send(
-                f"Role `{role.name}` was already present. Removing now..."
+                f"Role `{role.name}` was already present. Removing now...", ephemeral=True
             )
         else:
             await member.add_roles(role)
-            await interaction.followup.send(f"You now have the `{role.name}` role")
+            await interaction.followup.send(f"You now have the `{role.name}` role", ephemeral=True)
 
 
 class RoleSelectView(discord.ui.View):
