@@ -215,6 +215,41 @@ class SlashMod(commands.Cog):
         else:
             await channel.send(message, file=await attachment.to_file())
         await interaction.followup.send(f"Message sent to {channel.mention}")
+        mods_logs_id = ug.load_channel_id("modlogs", logs=True)
+        if not mods_logs_id:
+            return
+        mods_logs = interaction.guild.get_channel(mods_logs_id)
+        if not isinstance(mods_logs, discord.TextChannel):
+            return
+        if mods_logs:
+            echo_embed = discord.Embed(
+                title="Echo Sent",
+                #description=f"Message: {message}\nChannel: {channel.mention}\nAttachment: {'Yes' if attachment else 'No'}\nAuthor: {interaction.user.mention}",
+                color=discord.Color.blue(),
+                timestamp=datetime.now(dt.timezone.utc),
+            )
+            echo_embed.add_field(
+                name="Message",
+                value=message,
+                inline=False
+            )
+            echo_embed.add_field(
+                name="Channel",
+                value=channel.mention,
+                inline=False
+            )
+            echo_embed.add_field(
+                name="Attachment",
+                value="Yes" if attachment else "No",
+                inline=False
+            )
+            echo_embed.add_field(
+                name="Author",
+                value=interaction.user.mention,
+                inline=False
+            )
+            echo_embed.set_footer(text=f"PESU Bot")
+            await mods_logs.send(embed=echo_embed)
 
     @echo.error
     async def echo_error(
@@ -695,7 +730,8 @@ class SlashMod(commands.Cog):
             )
             return
 
-        await channel.set_permissions(everyone_role, send_messages=False)
+        overwrites.send_messages = False
+        await channel.set_permissions(everyone_role, overwrite=overwrites)
         await interaction.response.send_message(
             f"Locked {channel.mention}", ephemeral=False
         )
@@ -793,7 +829,8 @@ class SlashMod(commands.Cog):
             )
             return
 
-        await channel.set_permissions(everyone_role, send_messages=None)
+        overwrites.send_messages = False
+        await channel.set_permissions(everyone_role, overwrite=overwrites)
         await interaction.response.send_message(
             f"Unlocked {channel.mention}", ephemeral=False
         )
