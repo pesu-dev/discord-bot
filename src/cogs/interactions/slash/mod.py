@@ -41,10 +41,18 @@ class SlashMod(commands.Cog):
             {"unmute_time": {"$lte": now}, "active": True}
         ).to_list(length=100)
 
-        for mute in expired_mutes:
-            guild = self.client.get_guild(ug.load_config_value("GUILD", {}).get("ID"))
+        config_guildid = ug.load_config_value("GUILD", {}).get("ID")
+        guild = self.client.get_guild(config_guildid)
+        for mute in expired_mutes:         
             if not guild:
-                continue
+                try:
+                    guild = await self.client.fetch_guild(config_guildid)
+                except discord.NotFound:
+                    print(f"I couldn't find guild with ID {config_guildid}")
+                    continue
+                except discord.Forbidden:
+                    print(f"I don't have permissions to fetch guild {config_guildid}")
+                    continue
 
             try:
                 member = await guild.fetch_member(mute["user_id"])
@@ -67,8 +75,12 @@ class SlashMod(commands.Cog):
             muted_role = discord.utils.get(guild.roles, id=int(muted_role_id))
             if muted_role and muted_role in member.roles:
                 try:
-                    await member.remove_roles(muted_role)
-                except discord.HTTPException:
+                    await member.remove_roles(muted_role, reason="Automatic unmute by loop")
+                except discord.Forbidden:
+                    print(f"PERMISSION ERROR: Bot cannot remove role in '{guild.name}'. Check Role Hierarchy and 'Manage Roles' permission.")
+                    continue
+                except discord.HTTPException as e:
+                    print(f"HTTP ERROR while removing role: {e}")
                     continue
 
             await self.client.mute_collection.update_one(
