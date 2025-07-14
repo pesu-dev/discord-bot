@@ -422,7 +422,7 @@ class SlashMod(commands.Cog):
         unmute_timestamp = int(unmute_time.timestamp())
         mute_embed.add_field(
             name="Muted User",
-            value=f"{member.mention} was muted\nUnmute <t:{unmute_timestamp}:R>",
+            value=f"{member.mention} was muted\nUnmute: <t:{unmute_timestamp}:R>\nReason: {reason}",
             inline=False,
         )
         mute_embed.set_footer(text="PESU Bot")
@@ -920,7 +920,7 @@ class SlashMod(commands.Cog):
         timeout_timestamp = int(timeout_until.timestamp())
         timeout_embed.add_field(
             name="Timed-out Member",
-            value=f"{member.mention} was timed-out\nDe-time-out <t:{timeout_timestamp}:R>",
+            value=f"{member.mention} was timed-out\nDe-time-out: <t:{timeout_timestamp}:R>\nReason: {reason}",
             inline=False,
         )
 
@@ -937,7 +937,7 @@ class SlashMod(commands.Cog):
                 title="Time-out", color=0x8B0000, timestamp=utcnow()
             )
             timeout_logs_embed.add_field(
-                name="Muted User",
+                name="Timed-out User",
                 value=f"{member.mention}\nTime: {time}\nReason: {reason}\nModerator: {interaction.user.mention}",
                 inline=False,
             )
