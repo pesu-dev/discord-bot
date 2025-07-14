@@ -488,14 +488,20 @@ class SlashUtils(commands.Cog):
                         entry[q] = entry[q][:-1]
                     questions.append(f"[{q}]({entry[q]})")
             if questions:
-                await interaction.response.send_message(
-                    "\n\n".join(questions), ephemeral=False
+                embed = discord.Embed(
+                    title=f"FAQ - {category}",
+                    description="\n\n".join(questions),
+                    color=discord.Color.blurple()
                 )
+                await interaction.response.send_message(embed=embed)
 
             else:
-                await interaction.response.send_message(
-                    "No questions found in the selected category", ephemeral=True
+                embed = discord.Embed(
+                    title="FAQ",
+                    description="No questions found in this category",
+                    color=discord.Color.red()
                 )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         if question and category:
