@@ -95,7 +95,7 @@ class RoleSelect(discord.ui.Select):
                 "This command can only be used in a server", ephemeral=True
             )
         if any(role.id == ug.load_role_id("just_joined") for role in member.roles):
-            await interaction.followup.send("You need to verify yourself first.", ephemeral=True)
+            await interaction.followup.send("You need to link your account first.", ephemeral=True)
             return
 
         if role_id == "0":

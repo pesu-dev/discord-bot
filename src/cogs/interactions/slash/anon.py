@@ -118,10 +118,10 @@ class SlashAnon(commands.Cog):
                 ephemeral=True,
             )
 
-        userVerifyCheck = await self.client.link_collection.find_one(
+        userLinkCheck = await self.client.link_collection.find_one(
             {"userId": str(interaction.user.id)}
         )
-        if not userVerifyCheck:
+        if not userLinkCheck:
             return await interaction.followup.send(
                 "You're not verified, so you can't use anon messaging. If this is a mistake, please contact Han",
                 ephemeral=True,
