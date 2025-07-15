@@ -218,7 +218,7 @@ class SlashHelp(commands.Cog):
         ):
             embed = discord.Embed(
                 title="PESU Bot",
-                description=f"Visit <#{ug.load_channel_id('welcomeChannel')}> to get verified first!",
+                description=f"Visit <#{ug.load_channel_id('welcomeChannel')}> to link first!",
                 color=discord.Color.red(),
                 timestamp=discord.utils.utcnow(),
             )

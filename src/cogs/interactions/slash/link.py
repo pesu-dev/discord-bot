@@ -3,8 +3,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from bot import DiscordBot
-from utils import general as ug
-
+import utils.general as ug
 
 
 class SlashLink(commands.Cog):

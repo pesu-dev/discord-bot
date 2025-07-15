@@ -3,7 +3,7 @@ import datetime
 from bot import DiscordBot
 from discord import app_commands
 from discord.ext import commands, tasks
-from utils import general as ug
+import utils.general as ug
 from typing import Optional
 
 
@@ -123,7 +123,7 @@ class SlashAnon(commands.Cog):
         )
         if not userLinkCheck:
             return await interaction.followup.send(
-                "You're not verified, so you can't use anon messaging. If this is a mistake, please contact Han",
+                "You're not linked, so you can't use anon messaging. If this is a mistake, please contact Han",
                 ephemeral=True,
             )
 

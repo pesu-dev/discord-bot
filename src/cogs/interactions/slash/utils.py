@@ -95,7 +95,9 @@ class RoleSelect(discord.ui.Select):
                 "This command can only be used in a server", ephemeral=True
             )
         if any(role.id == ug.load_role_id("just_joined") for role in member.roles):
-            await interaction.followup.send("You need to link your account first.", ephemeral=True)
+            await interaction.followup.send(
+                "You need to link your account first.", ephemeral=True
+            )
             return
 
         if role_id == "0":
@@ -110,11 +112,14 @@ class RoleSelect(discord.ui.Select):
         if role in member.roles:
             await member.remove_roles(role)
             await interaction.followup.send(
-                f"Role `{role.name}` was already present. Removing now...", ephemeral=True
+                f"Role `{role.name}` was already present. Removing now...",
+                ephemeral=True,
             )
         else:
             await member.add_roles(role)
-            await interaction.followup.send(f"You now have the `{role.name}` role", ephemeral=True)
+            await interaction.followup.send(
+                f"You now have the `{role.name}` role", ephemeral=True
+            )
 
 
 class RoleSelectView(discord.ui.View):
@@ -179,8 +184,8 @@ class SlashUtils(commands.Cog):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
     @staticmethod
-    def get_verified_count(guild: discord.Guild) -> int:
-        role = discord.utils.get(guild.roles, id=ug.load_role_id("verified"))
+    def get_linked_count(guild: discord.Guild) -> int:
+        role = discord.utils.get(guild.roles, id=ug.load_role_id("linked"))
         if role is None:
             return 0
         return len(role.members)
@@ -205,11 +210,11 @@ class SlashUtils(commands.Cog):
                 "This command can only be used in a text channel", ephemeral=True
             )
         if rolelist is None:
-            rolec = type(self).get_verified_count(interaction.guild)
+            rolec = type(self).get_linked_count(interaction.guild)
             await interaction.followup.send(
                 content=f"**Server Stats**\n"
                 f"Total number of people on the server: `{interaction.guild.member_count}`\n"
-                f"Total number of verified people: `{rolec}`\n"
+                f"Total number of linked people: `{rolec}`\n"
                 f"Number of people that can see this channel: `{len(interaction.channel.members)}`\n"
                 f"Number of bots that can see this channel: `{len([m for m in interaction.channel.members if m.bot])}`\n"
             )
@@ -225,11 +230,11 @@ class SlashUtils(commands.Cog):
                 await interaction.followup.send(
                     content="No roles found. Processing request for server stats..."
                 )
-                rolec = type(self).get_verified_count(interaction.guild)
+                rolec = type(self).get_linked_count(interaction.guild)
                 await interaction.followup.send(
                     content=f"**Server Stats**\n"
                     f"Total number of people on the server: `{interaction.guild.member_count}`\n"
-                    f"Total number of verified people: `{rolec}`\n"
+                    f"Total number of linked people: `{rolec}`\n"
                     f"Number of people that can see this channel: `{len(interaction.channel.members)}`\n"
                     f"Number of bots that can see this channel: `{len([m for m in interaction.channel.members if m.bot])}`\n"
                 )
@@ -491,7 +496,7 @@ class SlashUtils(commands.Cog):
                 embed = discord.Embed(
                     title=f"FAQ - {category}",
                     description="\n\n".join(questions),
-                    color=discord.Color.blurple()
+                    color=discord.Color.blurple(),
                 )
                 await interaction.response.send_message(embed=embed)
 
@@ -499,7 +504,7 @@ class SlashUtils(commands.Cog):
                 embed = discord.Embed(
                     title="FAQ",
                     description="No questions found in this category",
-                    color=discord.Color.red()
+                    color=discord.Color.red(),
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
             return

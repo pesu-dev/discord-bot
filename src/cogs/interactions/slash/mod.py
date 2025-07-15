@@ -6,7 +6,7 @@ from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta
 from discord.utils import utcnow
-from utils import general as ug
+import utils.general as ug
 
 
 class SlashMod(commands.Cog):
@@ -227,6 +227,8 @@ class SlashMod(commands.Cog):
         else:
             await channel.send(message, file=await attachment.to_file())
         await interaction.followup.send(f"Message sent to {channel.mention}")
+        if not interaction.guild:
+            return
         mods_logs_id = ug.load_channel_id("modlogs", logs=True)
         if not mods_logs_id:
             return
