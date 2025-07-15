@@ -22,6 +22,9 @@ class SlashAnon(commands.Cog):
         if not self.check_anon_bans_loop.is_running():
             self.check_anon_bans_loop.start()
 
+        if not self.clear_anon_cache_loop.is_running():
+            self.clear_anon_cache_loop.start()
+
     def parse_time(self, time_str: str) -> int:
         time_str = time_str.lower().strip()
         try:
@@ -63,6 +66,16 @@ class SlashAnon(commands.Cog):
 
     @check_anon_bans_loop.before_loop
     async def before_check_anon_bans_loop(self):
+        await self.client.wait_until_ready()
+
+    @tasks.loop(hours=24)
+    async def clear_anon_cache_loop(self):
+        if self.anon_cache:
+            self.anon_cache.clear()
+            print("Anon cache cleared")
+
+    @clear_anon_cache_loop.before_loop
+    async def before_clear_anon_cache_loop(self):
         await self.client.wait_until_ready()
 
     @app_commands.command(
