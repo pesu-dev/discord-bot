@@ -200,7 +200,7 @@ class SlashAnon(commands.Cog):
         self,
         interaction: discord.Interaction,
         link: str,
-        time: str = None,
+        time: Optional[str] = None,
         reason: Optional[str] = "No reason provided",
     ):
         await interaction.response.defer(ephemeral=True)
@@ -255,6 +255,11 @@ class SlashAnon(commands.Cog):
         if time is not None:
             try:
                 seconds = self.parse_time(time)
+                if seconds is None:
+                    return await interaction.response.send_message(
+                        "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`",
+                        ephemeral=True,
+                    )
             except ValueError:
                 return await interaction.response.send_message(
                     "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`",
@@ -418,7 +423,7 @@ class SlashAnon(commands.Cog):
         self,
         interaction: discord.Interaction,
         member: discord.Member,
-        time: str = None,
+        time: Optional[str] = None,
         reason: Optional[str] = "No reason provided",
     ):
         await interaction.response.defer(ephemeral=True)
@@ -436,22 +441,30 @@ class SlashAnon(commands.Cog):
                 "Dude's already banned from anon messaging", ephemeral=True
             )
 
-        try:
-            seconds = self.parse_time(time)
-        except ValueError:
-            return await interaction.followup.send(
-                "Invalid time format. Please use a valid time format.", ephemeral=True
-            )
+        if time is not None:
+            try:
+                seconds = self.parse_time(time)
+            except ValueError:
+                return await interaction.followup.send(
+                    "Invalid time format. Please use a valid time format.", ephemeral=True
+                )
 
-        if seconds <= 10:
-            return await interaction.followup.send(
-                "You can't ban someone for less than 10 seconds", ephemeral=True
-            )
+            if seconds <= 10:
+                return await interaction.followup.send(
+                    "You can't ban someone for less than 10 seconds", ephemeral=True
+                )
+        else:
+            seconds = None
 
         bannedAt = datetime.datetime.now(datetime.timezone.utc)
         if time is not None:
             try:
                 seconds = self.parse_time(time)
+                if seconds is None:
+                    return await interaction.response.send_message(
+                        "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`",
+                        ephemeral=True,
+                    )
             except ValueError:
                 return await interaction.response.send_message(
                     "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`",
