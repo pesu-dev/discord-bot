@@ -16,7 +16,7 @@ class Events(commands.Cog):
     async def on_member_join(self, member):
         general = member.guild.get_channel(int(config['general']))
         just_joined = member.guild.get_role(int(config['just_joined']))
-        links_col = self.bot.db["link"]
+        links_col = self.client.db["link"]
 
         if general:
             await general.send(f"{member.mention} Joined!!")
@@ -61,7 +61,7 @@ class Events(commands.Cog):
         if general:
             await general.send(f"{member.mention} Joined!!")
 
-        links_col = self.bot.db["link"]
+        links_col = self.client.db["link"]
         link_record = await links_col.find_one({"userId": int(member.id)})
 
         if link_record:
