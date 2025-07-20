@@ -5,8 +5,6 @@ from bot import DiscordBot
 from utils import general as ug
 import json
 
-with open("config.json", "r") as f:
-    config = json.load(f)
 
 class Events(commands.Cog):
     def __init__(self, client: DiscordBot):
@@ -14,8 +12,8 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        general = member.guild.get_channel(int(config['general']))
-        just_joined = member.guild.get_role(int(config['just_joined']))
+        general = member.guild.get_channel(ug.load_channel_id("welcomeChannel"))
+        just_joined = member.guild.get_role(ug.load_role_id("just_joined"))
         links_col = self.client.db["link"]
 
         if general:
@@ -28,19 +26,25 @@ class Events(commands.Cog):
                 roles_to_add = []
                 
                 if link_record.get("year"):
-                    year_id = config["GUILD"]["ROLES"]["YEAR"][link_record.get("year")]
+                    year_id = ug.load_year_id(link_record.get("year"))
+                    if not year_id:
+                        return
                     year_role = member.guild.get_role(int(year_id))
                     if year_role:
                         roles_to_add.append(year_role)
                         
                 if link_record.get("branch"):
-                    branch_id = config["GUILD"]["ROLES"]["BRANCH"][link_record.get("branch")]
+                    branch_id = ug.load_branch_id(link_record.get("branch"))
+                    if not branch_id:
+                        return
                     branch_role = member.guild.get_role(int(branch_id))
                     if branch_role:
                         roles_to_add.append(branch_role)
                         
                 if link_record.get("campus"):
-                    campus_id = config["GUILD"]["ROLES"]["CAMPUS"][link_record.get("campus")]
+                    campus_id = ug.load_campus_id(link_record.get("campus"))
+                    if not campus_id:
+                        return
                     campus_role = member.guild.get_role(int(campus_id))
                     if campus_role:
                         roles_to_add.append(campus_role)
@@ -57,9 +61,9 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        general = member.guild.get_channel(int(config['general']))
+        general = member.guild.get_channel(ug.load_channel_id("welcomeChannel"))
         if general:
-            await general.send(f"{member.mention} Joined!!")
+            await general.send(f"{member.mention} Left!!")
 
         links_col = self.client.db["link"]
         link_record = await links_col.find_one({"userId": int(member.id)})

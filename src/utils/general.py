@@ -24,6 +24,22 @@ def load_channel_id(channel_name: str, logs: bool = False) -> int | None:
         return config["CHANNELS"].get(channel_name, {}).get("ID", None)
     return None
 
+def load_branch_id(branch_name: str) -> int | None:
+    config = load_config_value("GUILD")
+    if config and "ROLES" in config and "BRANCH" in config["ROLES"]:
+        return config["ROLES"]["BRANCH"].get(branch_name, None)
+    
+def load_year_id(year: str) -> int | None:
+    config = load_config_value("GUILD")
+    if config and "ROLES" in config and "YEAR" in config["ROLES"]:
+        return config["ROLES"]["YEAR"].get(year, None)
+    
+
+
+def load_campus_id(campus_name: str) -> int | None:
+    config = load_config_value("GUILD")
+    if config and "ROLES" in config and "CAMPUS" in config["ROLES"]:
+        return config["ROLES"]["CAMPUS"].get(campus_name, None)
 
 def build_unknown_error_embed(error: Exception) -> discord.Embed:
     return (
