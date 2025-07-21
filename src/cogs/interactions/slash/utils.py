@@ -94,7 +94,7 @@ class RoleSelect(discord.ui.Select):
             return await interaction.followup.send(
                 "This command can only be used in a server", ephemeral=True
             )
-        if any(role.id == ug.load_role_id("just_joined") for role in member.roles):
+        if any(role.id == ug.load_role_id("JUST_JOINED") for role in member.roles):
             await interaction.followup.send(
                 "You need to link your account first.", ephemeral=True
             )
@@ -185,7 +185,7 @@ class SlashUtils(commands.Cog):
 
     @staticmethod
     def get_linked_count(guild: discord.Guild) -> int:
-        role = discord.utils.get(guild.roles, id=ug.load_role_id("linked"))
+        role = discord.utils.get(guild.roles, id=ug.load_role_id("LINKED"))
         if role is None:
             return 0
         return len(role.members)

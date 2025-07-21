@@ -102,7 +102,7 @@ class SlashLink(commands.Cog):
         try:
             await user.remove_roles(*roles_to_remove, reason="Delinking")
 
-            just_joined_role_id = ug.load_role_id("just_joined")
+            just_joined_role_id = ug.load_role_id("JUST_JOINED")
             if not just_joined_role_id:
                 return await interaction.followup.send(
                     "Just joined role not found in config", ephemeral=True

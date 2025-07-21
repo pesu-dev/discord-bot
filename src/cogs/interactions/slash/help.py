@@ -214,11 +214,11 @@ class SlashHelp(commands.Cog):
                 "This command can only be used in a server", ephemeral=True
             )
         if any(
-            role.id == ug.load_role_id("just_joined") for role in interaction.user.roles
+            role.id == ug.load_role_id("JUST_JOINED") for role in interaction.user.roles
         ):
             embed = discord.Embed(
                 title="PESU Bot",
-                description=f"Visit <#{ug.load_channel_id('welcomeChannel')}> to link first!",
+                description=f"Visit <#{ug.load_channel_id('WELCOME')}> to link first!",
                 color=discord.Color.red(),
                 timestamp=discord.utils.utcnow(),
             )

@@ -101,7 +101,7 @@ class SlashAnon(commands.Cog):
             return await interaction.followup.send(
                 "This command can only be used in a server", ephemeral=True
             )
-        lobbyChannelId = ug.load_channel_id("lobbyChannel")
+        lobbyChannelId = ug.load_channel_id("LOBBY")
         if not lobbyChannelId:
             return await interaction.followup.send(
                 "Lobby channel not configured. Please contact the server admins.",
