@@ -12,7 +12,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        bot_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        bot_logs_id = ug.load_channel_id("ID", logs=True)
         if not bot_logs_id:
             return
         just_join_id = ug.load_role_id("JUST_JOINED")
@@ -76,7 +76,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        bot_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        bot_logs_id = ug.load_channel_id("ID", logs=True)
         bot_logs = member.guild.get_channel(bot_logs_id) if bot_logs_id is not None else None
         if isinstance(bot_logs, discord.TextChannel):
             await bot_logs.send(f"{member.mention} Left!!")
