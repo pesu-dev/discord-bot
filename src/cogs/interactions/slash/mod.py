@@ -456,7 +456,6 @@ class SlashMod(commands.Cog):
             "moderator_id": interaction.user.id,
             "mute_time": mute_time,
             "unmute_time": unmute_time,
-            "duration_seconds": seconds,
             "reason": reason,
             "active": True,
             "is_self_mute": is_self_mute,
@@ -843,7 +842,7 @@ class SlashMod(commands.Cog):
             )
             return
 
-        overwrites.send_messages = False
+        overwrites.send_messages = None
         await channel.set_permissions(everyone_role, overwrite=overwrites)
         await interaction.response.send_message(
             f"Unlocked {channel.mention}", ephemeral=False
