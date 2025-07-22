@@ -842,7 +842,7 @@ class SlashMod(commands.Cog):
             )
             return
 
-        overwrites.send_messages = True
+        overwrites.send_messages = None
         await channel.set_permissions(everyone_role, overwrite=overwrites)
         await interaction.response.send_message(
             f"Unlocked {channel.mention}", ephemeral=False
