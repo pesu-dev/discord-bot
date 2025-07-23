@@ -6,6 +6,7 @@ import ua_generator
 import aiohttp
 import yarl
 import json
+from pathlib import Path
 from typing import Optional
 
 
@@ -60,9 +61,9 @@ class RoleSelect(discord.ui.Select):
                 emoji="💸",
             ),
             SelectOption(
-                label="PESU Bot Dev",
+                label="PESU Dev",
                 value="810507351063920671",
-                description="Contribute to developing PESU Bot",
+                description="Join the PESU Dev team",
                 emoji="🤖",
             ),
             SelectOption(
@@ -112,13 +113,13 @@ class RoleSelect(discord.ui.Select):
         if role in member.roles:
             await member.remove_roles(role)
             await interaction.followup.send(
-                f"Role `{role.name}` was already present. Removing now...",
+                f"Role {role.mention} was already present. Removing now...",
                 ephemeral=True,
             )
         else:
             await member.add_roles(role)
             await interaction.followup.send(
-                f"You now have the `{role.name}` role", ephemeral=True
+                f"You now have the {role.mention} role", ephemeral=True
             )
 
 
@@ -562,6 +563,76 @@ class SlashUtils(commands.Cog):
 
     @faq.error
     async def faq_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
+        await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+    @app_commands.command(name="reload", description="Reload all cogs or a specific cog")
+    @app_commands.describe(cog="The specific cog to reload (leave empty to reload all)")
+    async def reload(
+        self, interaction: discord.Interaction, cog: Optional[str] = None
+    ):
+        await interaction.response.defer(ephemeral=True)
+        
+        # Check if user has admin permission
+        if not ug.has_bot_dev_permissions(interaction.user):
+            await interaction.followup.send(
+                content="You don't have permission to use this command.", ephemeral=True
+            )
+            return
+            
+        
+        if cog:
+            # Reload a specific cog
+            try:
+                await self.client.reload_extension(cog)
+                await interaction.followup.send(
+                    content=f"Successfully reloaded cog: `{cog}`", ephemeral=True
+                )
+            except Exception as e:
+                await interaction.followup.send(
+                    content=f"Failed to reload cog `{cog}`: {str(e)}", ephemeral=True
+                )
+        else:
+            # Reload all cogs
+            success = []
+            failed = []
+            
+            # Unload all cogs first
+            for path in Path("cogs").rglob("*.py"):
+                if path.name.startswith("__"):
+                    continue
+                    
+                cog_name = ".".join(path.with_suffix("").parts)
+                try:
+                    await self.client.unload_extension(cog_name)
+                except Exception:
+                    # Ignore errors on unload
+                    pass
+            
+            # Now load all cogs
+            for path in Path("cogs").rglob("*.py"):
+                if path.name.startswith("__"):
+                    continue
+                    
+                cog_name = ".".join(path.with_suffix("").parts)
+                try:
+                    await self.client.load_extension(cog_name)
+                    success.append(cog_name)
+                except Exception as e:
+                    failed.append((cog_name, str(e)))
+            
+            # Create response message
+            response = f"Reloaded {len(success)} cogs successfully."
+            if failed:
+                response += f"\nFailed to reload {len(failed)} cogs:"
+                for cog_name, error in failed:
+                    response += f"\n- `{cog_name}`: {error[:100]}{'...' if len(error) > 100 else ''}"
+            
+            await interaction.followup.send(content=response, ephemeral=True)
+
+    @reload.error
+    async def reload_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))

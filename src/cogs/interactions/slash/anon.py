@@ -16,14 +16,21 @@ class SlashAnon(commands.Cog):
             callback=self.anon_ban_from_context_menu,
         )
         self.client.tree.add_command(self.ctx_menu)
+        self.tasks = [self.check_anon_bans_loop, self.clear_anon_cache_loop]
+        for task in self.tasks:
+            if not task.is_running():
+                task.start()
+
+    async def cog_unload(self):
+        for task in self.tasks:
+            task.cancel()
 
     @commands.Cog.listener()
     async def on_ready(self):
-        if not self.check_anon_bans_loop.is_running():
-            self.check_anon_bans_loop.start()
-
-        if not self.clear_anon_cache_loop.is_running():
-            self.clear_anon_cache_loop.start()
+        await self.client.wait_until_ready()
+        for task in self.tasks:
+            if not task.is_running():
+                task.start()
 
     def parse_time(self, time_str: str) -> int:
         time_str = time_str.lower().strip()
@@ -72,7 +79,6 @@ class SlashAnon(commands.Cog):
     async def clear_anon_cache_loop(self):
         if self.anon_cache:
             self.anon_cache.clear()
-            print("Anon cache cleared")
 
     @clear_anon_cache_loop.before_loop
     async def before_clear_anon_cache_loop(self):
@@ -593,7 +599,7 @@ class SlashAnon(commands.Cog):
         expiryTimestamp = f"<t:{int(expiresAt.timestamp())}:R>" if expiresAt else "Permanent"
 
         embed = discord.Embed(title="Anon Ban Info", color=discord.Color.red())
-        embed.add_field(name="User", value=f"{member} ({member.id})", inline=False)
+        embed.add_field(name="User", value=member.mention, inline=False)
         embed.add_field(
             name="Reason",
             value=userBanCheck.get("reason", "No reason provided"),

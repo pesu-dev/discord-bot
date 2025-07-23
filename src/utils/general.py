@@ -67,11 +67,11 @@ def build_unknown_error_embed(error: Exception) -> discord.Embed:
 
 
 def has_mod_permissions(member):
-    admin_role = discord.utils.get(member.guild.roles, id=load_role_id("admin"))
-    mod_role = discord.utils.get(member.guild.roles, id=load_role_id("mod"))
+    admin_role = discord.utils.get(member.guild.roles, id=load_role_id("ADMIN"))
+    mod_role = discord.utils.get(member.guild.roles, id=load_role_id("MOD"))
     return admin_role in member.roles or mod_role in member.roles
 
 
 def has_bot_dev_permissions(member):
-    bot_dev_role = discord.utils.get(member.guild.roles, id=load_role_id("botDev"))
+    bot_dev_role = discord.utils.get(member.guild.roles, id=load_role_id("BOT_DEV"))
     return bot_dev_role in member.roles if bot_dev_role else False

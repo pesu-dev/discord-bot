@@ -3,7 +3,6 @@ from discord.ext import commands
 from datetime import datetime
 from bot import DiscordBot
 from utils import general as ug
-import json
 
 
 class Events(commands.Cog):

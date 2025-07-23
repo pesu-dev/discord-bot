@@ -42,7 +42,7 @@ async def on_ready():
         client.logger.info(f"Logged in as {client.user.name} ({client.user.id})")
     client.logger.info(connection)
 
-    # Uncomment the next line to clear all commands on startup
+    # Clear all commands
     await clear_all_commands(client=client)
 
     # Load cogs
