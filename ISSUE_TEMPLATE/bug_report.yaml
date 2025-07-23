@@ -24,7 +24,7 @@ body:
       label: 📋 Steps to Reproduce
       description: Provide a clear set of steps to reproduce the issue.
       placeholder: |
-        1. Start the bot using `python main.py`
+        1. Start the bot using `python3 main.py`
         2. Send `/ping` in the server
         3. Observe that there is no response
     validations:
