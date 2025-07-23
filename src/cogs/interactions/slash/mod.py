@@ -12,21 +12,11 @@ import utils.general as ug
 class SlashMod(commands.Cog):
     def __init__(self, client: DiscordBot):
         self.client = client
-        self.tasks = [self.check_mutes_loop]
-        for task in self.tasks:
-            if not task.is_running():
-                task.start()
-
-    async def cog_unload(self):
-        for task in self.tasks:
-            task.cancel()
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await self.client.wait_until_ready()
-        for task in self.tasks:
-            if not task.is_running():
-                task.start()
+        if not self.check_mutes_loop.is_running():
+            self.check_mutes_loop.start()
 
     def parse_time(self, time_str: str) -> int:
         time_str = time_str.lower().strip()
@@ -39,6 +29,8 @@ class SlashMod(commands.Cog):
                 return int(time_str[:-1]) * 60
             elif time_str.endswith("s"):
                 return int(time_str[:-1])
+            elif time_str.endswith("y"):
+                return int(time_str[:-1]) * 24 * 60 * 60 * 365
             else:
                 return int(time_str)
         except ValueError:
@@ -210,9 +202,7 @@ class SlashMod(commands.Cog):
                 f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
             )
 
-    @app_commands.command(
-        name="echo", description="Echoes a message to the target channel"
-    )
+    @app_commands.command(name="echo", description="Echoes a message to the target channel")
     @app_commands.describe(
         channel="The channel to send the message to",
         message="The message to send",
@@ -226,12 +216,11 @@ class SlashMod(commands.Cog):
         attachment: Optional[discord.Attachment] = None,
     ):
         await interaction.response.defer(ephemeral=True)
-        if not ug.has_mod_permissions(
-            interaction.user
-        ) and not ug.has_bot_dev_permissions(interaction.user):
-            return await interaction.response.send_message(
+        if not ug.has_mod_permissions(interaction.user) and not ug.has_bot_dev_permissions(interaction.user):
+            return await interaction.followup.send(
                 "You are not authorised to run this command", ephemeral=True
             )
+        
         if not attachment:
             await channel.send(message)
         else:
@@ -376,7 +365,7 @@ class SlashMod(commands.Cog):
     )
     @app_commands.describe(
         member="The member to mute (or yourself for self-mute)",
-        time="Duration for mute (e.g., 1h, 30m, 2d)",
+        time="Duration for mute (e.g., 1h, 30m, 2d, and ofc Y(💀))",
         reason="Reason for the mute",
     )
     async def mute(
@@ -414,16 +403,11 @@ class SlashMod(commands.Cog):
             seconds = self.parse_time(time)
         except ValueError:
             await interaction.response.send_message(
-                "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`",
+                "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s or Y`",
                 ephemeral=True,
             )
             return
 
-        if seconds <= 0 or seconds > 1209600:
-            await interaction.response.send_message(
-                "Mute time limit is 14 days only", ephemeral=True
-            )
-            return
 
         if is_self_mute and seconds < 3600:
             await interaction.response.send_message(
@@ -570,7 +554,7 @@ class SlashMod(commands.Cog):
         await member.remove_roles(muted_role)
 
         await self.client.mute_collection.update_many(
-            {"user_id": member.id, "guild_id": interaction.guild.id, "active": True},
+            {"user_id": member.id, "active": True},
             {
                 "$set": {
                     "active": False,
