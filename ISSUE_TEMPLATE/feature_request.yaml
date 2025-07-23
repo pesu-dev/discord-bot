@@ -1,0 +1,67 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for the Discord bot
+labels: ["enhancement", "discussion-needed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Feature Request
+
+        Suggest a new idea, command, or improvement for the Discord bot.
+
+  - type: input
+    id: summary
+    attributes:
+      label: 📌 Feature Summary
+      description: Briefly describe the feature or enhancement you want to see.
+      placeholder: e.g. "Add a /remindme command for scheduling reminders"
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 💡 Motivation
+      description: Explain *why* this feature would be useful. What problem does it solve, or what value does it add?
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: 🧩 Suggested Implementation
+      description: (Optional) Share any ideas for how this could be implemented, including related commands, permissions, or integrations.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: 🧠 Estimated Complexity
+      options:
+        - Low (Simple command or minor enhancement)
+        - Medium (Multiple file changes, some logic updates)
+        - High (Major refactor, new integrations, or complex logic)
+      multiple: false
+    validations:
+      required: false
+
+  - type: textarea
+    id: related
+    attributes:
+      label: 🔗 Related Issues / PRs
+      description: Reference related issues, pull requests, or discussions if any.
+      placeholder: |
+        - Related to #42
+        - Follow-up to PR #101
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 🧠 Additional Notes
+      description: Add any other context, edge cases, affected user groups, blockers, or concerns.
+      placeholder: e.g. "Might require admin permissions" or "Could affect onboarding flow"
+    validations:
+      required: false

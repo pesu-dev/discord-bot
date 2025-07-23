@@ -26,11 +26,11 @@ pip3 install -r requirements.txt
 You will need a `.env` file with the following variables:
 
 ```sh
+BOT_PREFIX= "YOUR_BOT_PREFIX"
 BOT_TOKEN="YOUR_BOT_TOKEN"
-MONGO_URI="YOUR_MONGO_URI"
 GUILD_ID="YOUR_GUILD_ID" (742797665301168220 for PESU Discord Server)
-BOT_PREFIX="YOUR_BOT_PREFIX"
-NODE_ENV="development"
+MONGO_URI="YOUR_MONGO_URI"
+DB_NAME="YOUR_DATABASE_NAME"
 ```
 
 If you wish to contribute to the bot, run these steps:
