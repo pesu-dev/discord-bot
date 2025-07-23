@@ -8,6 +8,7 @@ import yarl
 import json
 from pathlib import Path
 from typing import Optional
+from bot import DiscordBot
 
 
 class RoleSelect(discord.ui.Select):
@@ -130,7 +131,7 @@ class RoleSelectView(discord.ui.View):
 
 
 class SlashUtils(commands.Cog):
-    def __init__(self, client: commands.Bot):
+    def __init__(self, client: DiscordBot):
         self.client = client
         self.cached_data = None
         self.client.add_view(RoleSelectView())
@@ -586,6 +587,7 @@ class SlashUtils(commands.Cog):
             # Reload a specific cog
             try:
                 await self.client.reload_extension(cog)
+                self.client.logger.info(f"Reloaded cog: {cog}")
                 await interaction.followup.send(
                     content=f"Successfully reloaded cog: `{cog}`", ephemeral=True
                 )
@@ -606,6 +608,7 @@ class SlashUtils(commands.Cog):
                 cog_name = ".".join(path.with_suffix("").parts)
                 try:
                     await self.client.unload_extension(cog_name)
+                    self.client.logger.info(f"Unloaded cog: {cog_name}")
                 except Exception:
                     # Ignore errors on unload
                     pass
@@ -618,6 +621,7 @@ class SlashUtils(commands.Cog):
                 cog_name = ".".join(path.with_suffix("").parts)
                 try:
                     await self.client.load_extension(cog_name)
+                    self.client.logger.info(f"Reloaded cog: {cog_name}")
                     success.append(cog_name)
                 except Exception as e:
                     failed.append((cog_name, str(e)))
@@ -638,7 +642,7 @@ class SlashUtils(commands.Cog):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
 
 
-async def setup(client: commands.Bot):
+async def setup(client: DiscordBot):
     await client.add_cog(
         SlashUtils(client),
         guild=discord.Object(id=ug.load_config_value("GUILD", {}).get("ID")),
