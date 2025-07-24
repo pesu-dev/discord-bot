@@ -365,7 +365,7 @@ class SlashMod(commands.Cog):
     )
     @app_commands.describe(
         member="The member to mute (or yourself for self-mute)",
-        time="Duration for mute (e.g., 1h, 30m, 2d, and ofc Y(💀))",
+        time="Duration for mute (e.g., 1h, 30m, 2d, and ofc y(💀))",
         reason="Reason for the mute",
     )
     async def mute(
@@ -403,7 +403,7 @@ class SlashMod(commands.Cog):
             seconds = self.parse_time(time)
         except ValueError:
             await interaction.response.send_message(
-                "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s or Y`",
+                "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s or y`",
                 ephemeral=True,
             )
             return
