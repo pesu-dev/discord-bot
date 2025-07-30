@@ -211,29 +211,27 @@ class SlashMod(commands.Cog):
     async def echo(
         self,
         interaction: discord.Interaction,
-        channel: discord.TextChannel,
+        channel: discord.abc.Messageable,
         message: str,
         attachment: Optional[discord.Attachment] = None,
     ):
-        await interaction.response.defer(ephemeral=True)
         if not ug.has_mod_permissions(interaction.user) and not ug.has_bot_dev_permissions(interaction.user):
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "You are not authorised to run this command", ephemeral=True
             )
+
+
+        await interaction.response.defer(ephemeral=True)
         
         if not attachment:
             await channel.send(message)
         else:
             await channel.send(message, file=await attachment.to_file())
-        await interaction.followup.send(f"Message sent to {channel.mention}")
+        await interaction.followup.send(f"Message sent to {channel.mention}", ephemeral=True)
         if not interaction.guild:
             return
         mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
-        if not mods_logs_id:
-            return
         mods_logs = interaction.guild.get_channel(mods_logs_id)
-        if not isinstance(mods_logs, discord.TextChannel):
-            return
         if mods_logs:
             echo_embed = discord.Embed(
                 title="Echo Sent",
