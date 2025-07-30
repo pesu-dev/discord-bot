@@ -39,6 +39,8 @@ class SlashMod(commands.Cog):
                 return int(time_str[:-1]) * 60
             elif time_str.endswith("s"):
                 return int(time_str[:-1])
+            elif time_str.endswith("y"):
+                return int(time_str[:-1]) * 24 * 60 * 60 * 365
             else:
                 return int(time_str)
         except ValueError:
@@ -210,9 +212,7 @@ class SlashMod(commands.Cog):
                 f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
             )
 
-    @app_commands.command(
-        name="echo", description="Echoes a message to the target channel"
-    )
+    @app_commands.command(name="echo", description="Echoes a message to the target channel")
     @app_commands.describe(
         channel="The channel to send the message to",
         message="The message to send",
@@ -221,30 +221,27 @@ class SlashMod(commands.Cog):
     async def echo(
         self,
         interaction: discord.Interaction,
-        channel: discord.TextChannel,
+        channel: discord.abc.Messageable,
         message: str,
         attachment: Optional[discord.Attachment] = None,
     ):
-        await interaction.response.defer(ephemeral=True)
-        if not ug.has_mod_permissions(
-            interaction.user
-        ) and not ug.has_bot_dev_permissions(interaction.user):
+        if not ug.has_mod_permissions(interaction.user) and not ug.has_bot_dev_permissions(interaction.user):
             return await interaction.response.send_message(
                 "You are not authorised to run this command", ephemeral=True
             )
+
+
+        await interaction.response.defer(ephemeral=True)
+        
         if not attachment:
             await channel.send(message)
         else:
             await channel.send(message, file=await attachment.to_file())
-        await interaction.followup.send(f"Message sent to {channel.mention}")
+        await interaction.followup.send(f"Message sent to {channel.mention}", ephemeral=True)
         if not interaction.guild:
             return
         mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
-        if not mods_logs_id:
-            return
         mods_logs = interaction.guild.get_channel(mods_logs_id)
-        if not isinstance(mods_logs, discord.TextChannel):
-            return
         if mods_logs:
             echo_embed = discord.Embed(
                 title="Echo Sent",
@@ -376,7 +373,7 @@ class SlashMod(commands.Cog):
     )
     @app_commands.describe(
         member="The member to mute (or yourself for self-mute)",
-        time="Duration for mute (e.g., 1h, 30m, 2d)",
+        time="Duration for mute (e.g., 1h, 30m, 2d, and ofc y(💀))",
         reason="Reason for the mute",
     )
     async def mute(
@@ -414,16 +411,11 @@ class SlashMod(commands.Cog):
             seconds = self.parse_time(time)
         except ValueError:
             await interaction.response.send_message(
-                "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s`",
+                "Mention the proper amount of time to be muted\nAccepted Time Format: Should end with `d/h/m/s or y`",
                 ephemeral=True,
             )
             return
 
-        if seconds <= 0 or seconds > 1209600:
-            await interaction.response.send_message(
-                "Mute time limit is 14 days only", ephemeral=True
-            )
-            return
 
         if is_self_mute and seconds < 3600:
             await interaction.response.send_message(
@@ -570,7 +562,7 @@ class SlashMod(commands.Cog):
         await member.remove_roles(muted_role)
 
         await self.client.mute_collection.update_many(
-            {"user_id": member.id, "guild_id": interaction.guild.id, "active": True},
+            {"user_id": member.id, "active": True},
             {
                 "$set": {
                     "active": False,
