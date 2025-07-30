@@ -12,11 +12,21 @@ import utils.general as ug
 class SlashMod(commands.Cog):
     def __init__(self, client: DiscordBot):
         self.client = client
+        self.tasks = [self.check_mutes_loop]
+        for task in self.tasks:
+            if not task.is_running():
+                task.start()
+
+    async def cog_unload(self):
+        for task in self.tasks:
+            task.cancel()
 
     @commands.Cog.listener()
     async def on_ready(self):
-        if not self.check_mutes_loop.is_running():
-            self.check_mutes_loop.start()
+        await self.client.wait_until_ready()
+        for task in self.tasks:
+            if not task.is_running():
+                task.start()
 
     def parse_time(self, time_str: str) -> int:
         time_str = time_str.lower().strip()
