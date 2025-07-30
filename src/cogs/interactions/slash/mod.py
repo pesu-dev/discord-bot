@@ -7,7 +7,7 @@ from discord import app_commands
 from datetime import datetime, timedelta
 from discord.utils import utcnow
 import utils.general as ug
-
+from typing import Union
 
 class SlashMod(commands.Cog):
     def __init__(self, client: DiscordBot):
@@ -221,7 +221,7 @@ class SlashMod(commands.Cog):
     async def echo(
         self,
         interaction: discord.Interaction,
-        channel: discord.abc.Messageable,
+        channel: Union[discord.TextChannel, discord.Thread],
         message: str,
         attachment: Optional[discord.Attachment] = None,
     ):
