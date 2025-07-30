@@ -464,7 +464,6 @@ class SlashUtils(commands.Cog):
         question: Optional[str] = None,
     ):
         data = await self.get_data()
-        print(data)
 
         if category and category not in data:
             await interaction.response.send_message(
@@ -527,7 +526,6 @@ class SlashUtils(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ):
         data = await self.get_data()
-        print(data)
         return [
             app_commands.Choice(name=cat, value=cat)
             for cat in data.keys()
