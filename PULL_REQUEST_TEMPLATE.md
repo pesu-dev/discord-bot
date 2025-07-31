@@ -55,6 +55,7 @@ Summarize what this PR does:
 - [ ] All tests pass locally
 - [ ] Ran linting and formatting (`pre-commit run --all-files`)
 - [ ] Docker image builds and runs
+- [] Did not change `config.json` (unless with explicit permission)
 - [ ] Changes are backwards compatible (if applicable)
 - [ ] Feature flags or `.env` vars updated (if applicable)
 - [ ] Tested in multiple environments (if applicable)
