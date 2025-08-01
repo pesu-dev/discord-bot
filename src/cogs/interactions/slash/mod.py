@@ -49,11 +49,9 @@ class SlashMod(commands.Cog):
     @tasks.loop(seconds=30)
     async def check_mutes_loop(self):
         now = datetime.now(dt.timezone.utc)
-        expired_mutes = [] 
-        if self.client.mute_collection:
-            expired_mutes = await self.client.mute_collection.find(
-                {"unmute_time": {"$lte": now}, "active": True}
-            ).to_list(length=100)
+        expired_mutes = await self.client.mute_collection.find(
+            {"unmute_time": {"$lte": now}, "active": True}
+        ).to_list(length=100)
 
         config_guildid = ug.load_config_value("GUILD", {}).get("ID")
         guild = self.client.get_guild(config_guildid)
@@ -213,51 +211,6 @@ class SlashMod(commands.Cog):
             print(
                 f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
             )
-
-    @commands.command(name="echo", description="Echoes a message to the target channel")
-    async def echo_prefix(
-        self,
-        ctx: commands.Context,
-        channel: Union[discord.TextChannel, discord.Thread],
-        *,
-        message: str,
-    ):
-        if not ug.has_mod_permissions(ctx.author) and not ug.has_bot_dev_permissions(ctx.author):
-            return await ctx.send(f"You think I am a fool")
-        await ctx.message.delete()
-        try:
-            attachment_to_send = (
-                await ctx.message.attachments[0].to_file()
-                if ctx.message.attachments
-                else None
-            )
-            await channel.send(message, file=attachment_to_send)
-        except discord.Forbidden:
-            return await ctx.send("Error: I don't have permission to send messages there.")
-        except Exception as e:
-            return await ctx.send(f"An unexpected error occurred: {e}")
-
-        if not ctx.guild:
-            return
-
-        mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
-        mods_logs = ctx.guild.get_channel(mods_logs_id)
-        if isinstance(mods_logs, discord.TextChannel):
-            echo_embed = discord.Embed(
-                title="Echo Sent (Prefix)",
-                color=discord.Color.blue(),
-                timestamp=datetime.now(dt.timezone.utc),
-            )
-            echo_embed.add_field(name="Message", value=message, inline=False)
-            echo_embed.add_field(name="Channel", value=channel.mention, inline=False)
-            echo_embed.add_field(
-                name="Attachment",
-                value="Yes" if ctx.message.attachments else "No",
-                inline=False,
-            )
-            echo_embed.add_field(name="Author", value=ctx.author.mention, inline=False)
-            echo_embed.set_footer(text="PESU Bot")
-            await mods_logs.send(embed=echo_embed)
 
     @app_commands.command(name="echo", description="Echoes a message to the target channel")
     @app_commands.describe(
