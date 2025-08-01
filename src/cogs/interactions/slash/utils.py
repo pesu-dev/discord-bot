@@ -3,12 +3,11 @@ import utils.general as ug
 from discord import app_commands, Interaction, SelectOption
 from discord.ext import commands
 import ua_generator
-import aiohttp
-import yarl
 import json
 from pathlib import Path
 from typing import Optional
 from bot import DiscordBot
+import httpx
 
 
 class RoleSelect(discord.ui.Select):
@@ -397,66 +396,57 @@ class SlashUtils(commands.Cog):
 
     @staticmethod
     async def fetch_data():
-        async with aiohttp.ClientSession(
-            headers={
-                "User-Agent": ua_generator.generate().text,
-                "Accept-Encoding": "gzip, deflate, br, zstd",
-                "Accept": "*/*",
-                "Connection": "keep-alive",
-            }
-        ) as session:
-            async with session.get(
-                yarl.URL(
-                    "https://reddit.com/r/PESU/comments/14c1iym/.json", encoded=True
+        headers = {
+            "User-Agent": ua_generator.generate().text,
+            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Accept": "*/*",
+            "Connection": "keep-alive",
+        }
+
+        url = "https://reddit.com/r/PESU/comments/14c1iym/.json"
+
+        async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+            response = await client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                x = data[0]["data"]["children"][0]["data"]["selftext"]
+                finedata = {}
+                y = x.split("# ")
+                for i in y:
+                    j = i.split("\n\n")
+                    if "This post will be" in j[0]:
+                        continue
+                    s = j[1].split("* ")
+                    news = list(filter(None, s))
+                    for i in news:
+                        if ") or [" in i:
+                            chakdeh = i.split(") or [")
+                            for i in chakdeh:
+                                l = i.split("](")
+                                if l[0].startswith("["):
+                                    l[0] = l[0][1:]
+                                if l[1].endswith(")"):
+                                    l[1] = l[1][:-1]
+                                finedata.setdefault(j[0], []).append({l[0]: l[1]})
+                        else:
+                            chakdeh = i.split("](")
+                            if chakdeh[0].startswith("["):
+                                chakdeh[0] = chakdeh[0][1:]
+                            if chakdeh[1].endswith(")"):
+                                chakdeh[1] = chakdeh[1][:-1]
+                            if chakdeh[1].endswith("\n"):
+                                chakdeh[1] = chakdeh[1][:-1]
+                            finedata.setdefault(j[0], []).append({chakdeh[0]: chakdeh[1]})
+                return finedata
+            else:
+                resp = response.text
+                print(
+                    f"Failed to fetch data: {response.status_code}, falling back to local data. {resp}"
                 )
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    x = data[0]["data"]["children"][0]["data"]["selftext"]
-                    finedata = {}
-                    y = x.split("# ")
-                    for i in y:
-                        j = i.split("\n\n")
-                        if "This post will be" in j[0]:
-                            continue
-                        # print(f"Processing Title: {j[0]}")
-                        s = j[1].split("* ")
-                        news = list(filter(None, s))
-                        for i in news:
-                            if ") or [" in i:
-                                chakdeh = i.split(") or [")
-                                for i in chakdeh:
-                                    l = i.split("](")
-                                    if l[0].startswith("["):
-                                        l[0] = l[0][1:]
-                                    if l[1].endswith(")"):
-                                        l[1] = l[1][:-1]
-                                    finedata.setdefault(j[0], []).append({l[0]: l[1]})
-
-                            else:
-
-                                chakdeh = i.split("](")
-                                if chakdeh[0].startswith("["):
-                                    chakdeh[0] = chakdeh[0][1:]
-                                if chakdeh[1].endswith(")"):
-                                    chakdeh[1] = chakdeh[1][:-1]
-
-                                if chakdeh[1].endswith("\n"):
-                                    chakdeh[1] = chakdeh[1][:-1]
-                                finedata.setdefault(j[0], []).append(
-                                    {chakdeh[0]: chakdeh[1]}
-                                )
-
-                    return finedata
-                else:
-                    resp = await response.text()
-                    print(
-                        f"Failed to fetch data: {response.status}, falling back to local data. {resp}"
-                    )
-                    with open("faq.json", "r") as file:
-                        data = json.load(file)
-                    return data
-
+                with open("faq.json", "r") as file:
+                    data = json.load(file)
+                return data
+        
     async def get_data(self):
         if not self.cached_data:
             self.cached_data = await self.fetch_data()
