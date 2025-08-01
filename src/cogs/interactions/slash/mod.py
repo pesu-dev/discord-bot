@@ -7,7 +7,7 @@ from discord import app_commands
 from datetime import datetime, timedelta
 from discord.utils import utcnow
 import utils.general as ug
-
+from typing import Union
 
 class SlashMod(commands.Cog):
     def __init__(self, client: DiscordBot):
@@ -221,7 +221,7 @@ class SlashMod(commands.Cog):
     async def echo(
         self,
         interaction: discord.Interaction,
-        channel: discord.abc.Messageable,
+        channel: Union[discord.TextChannel, discord.Thread],
         message: str,
         attachment: Optional[discord.Attachment] = None,
     ):
@@ -241,7 +241,11 @@ class SlashMod(commands.Cog):
         if not interaction.guild:
             return
         mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        if not mods_logs_id:
+            return
         mods_logs = interaction.guild.get_channel(mods_logs_id)
+        if not isinstance(mods_logs, discord.TextChannel):
+            return
         if mods_logs:
             echo_embed = discord.Embed(
                 title="Echo Sent",
