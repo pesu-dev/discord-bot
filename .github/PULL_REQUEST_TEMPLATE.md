@@ -73,7 +73,7 @@ Summarize what this PR does:
 - [ ] Bot startup/shutdown
 - [ ] CI / pre-commit
 - [ ] Dockerfile / build
-- [ ] Dependencies (`requirements.txt`, `pyproject.toml`)
+- [ ] Dependencies (`requirements.txt`)
 - [ ] Tooling/scripts
 - [ ] Other (specify in Additional Notes)
 

@@ -72,7 +72,7 @@ This section provides instructions for setting up your development environment t
    cd discord-bot
    
    # Option 2: Clone your fork
-   git clone https://github.com/YOUR_USERNAME/discord-bot.git
+   git clone https://github.com/your-github-username/discord-bot.git
    cd discord-bot
    ```
 
