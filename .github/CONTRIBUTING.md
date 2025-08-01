@@ -184,7 +184,7 @@ Use descriptive commit messages that explain what the change does.
 
 If you get stuck or have questions:
 
-1. Check the [README.md](../docs/README.md) for setup and usage info.
+1. Check the [README.md](../README.md) for setup and usage info.
 2. Review the [project board](https://github.com/orgs/pesu-dev/projects/4/views/8) to see current work and track progress.
 3. Reach out to the maintainers on PESU Discord.
    - Use the appropriate development channels for questions.
