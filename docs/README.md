@@ -24,6 +24,7 @@ pip3 install -r requirements.txt
 ```
 
 You will need a `.env` file with the following variables:
+Update the value of `GUILD_ID` in `config.json` 
 
 ```sh
 BOT_TOKEN="YOUR_BOT_TOKEN"
