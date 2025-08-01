@@ -1,0 +1,4 @@
+* @pesu-dev/bot-maintainers
+
+.github/CODEOWNERS @sach-12
+.github/workflows/ @sach-12
