@@ -59,7 +59,6 @@ Summarize what this PR does:
 - [ ] Changes are backwards compatible (if applicable)
 - [ ] Feature flags or `.env` vars updated (if applicable)
 - [ ] Tested in multiple environments (if applicable)
-- [ ] Benchmarks still meet expected performance (if applicable)
 
 ---
 

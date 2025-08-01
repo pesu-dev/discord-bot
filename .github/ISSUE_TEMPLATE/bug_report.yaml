@@ -81,6 +81,7 @@ body:
       options:
         - Commands (e.g. /ping, /help)
         - Event handling
+        - Response design (format, style, content, etc.)
         - Permissions
         - Database/Storage
         - Discord API
