@@ -222,7 +222,6 @@ class SlashMod(commands.Cog):
     ):
         if not ug.has_mod_permissions(ctx.author) and not ug.has_bot_dev_permissions(ctx.author):
             return await ctx.send(f"You think I am a fool")
-        await ctx.message.delete()
         try:
             attachment_to_send = (
                 await ctx.message.attachments[0].to_file()
