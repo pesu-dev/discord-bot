@@ -43,7 +43,7 @@ async def on_ready():
     client.logger.info(connection)
 
     # Clear all commands
-    await clear_all_commands(client=client)
+    # await clear_all_commands(client=client)
 
     # Load cogs
     for path in Path("cogs").rglob("*.py"):
@@ -58,7 +58,7 @@ async def on_ready():
             client.logger.error(f"Failed to load {cog}: {e}")
 
     # Sync commands
-    await sync_all_commands(client=client)
+    # await sync_all_commands(client=client)
 
     # Set status
     await client.change_presence(

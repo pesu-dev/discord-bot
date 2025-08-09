@@ -1,0 +1,9 @@
+# High level team ownership
+* @pesu-dev/bot-maintainers
+
+# Specific file ownership
+.github/ @sach-12
+LICENSE @sach-12
+README.md @sach-12
+src/config.json @sach-12
+src/requirements.txt @sach-12
