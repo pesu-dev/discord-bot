@@ -103,6 +103,7 @@ This section provides instructions for setting up your development environment t
    BOT_TOKEN="YOUR_BOT_TOKEN_HERE"
    MONGO_URI="YOUR_MONGO_URI_HERE"
    DB_NAME="YOUR_DATABASE_NAME"
+   BOT_PREFIX="YOUR_BOT_PREFIX"
    ```
 
    Replace the placeholder values with your actual credentials:
@@ -110,6 +111,7 @@ This section provides instructions for setting up your development environment t
    - `BOT_TOKEN`: Get this from your Discord Application's Bot section
    - `MONGO_URI`: Your MongoDB connection string
    - `DB_NAME`: Your database name for development
+   - `BOT_PREFIX` : Your bot prefix (ex: `!`,`@` ..)
 
 ### Database Setup
 
