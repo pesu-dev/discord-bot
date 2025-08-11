@@ -77,17 +77,6 @@ The bot maintains several MongoDB collections:
 
 The bot's behavior is controlled through several configuration files:
 
-### `.env`
-Contains BOT-TOKEN and GUILD ID for syncing commands
-
-```sh
-BOT_TOKEN="YOUR_BOT_TOKEN"
-MONGO_URI="YOUR_MONGO_URI"
-GUILD_ID="YOUR_GUILD_ID"
-BOT_PREFIX="YOUR_BOT_PREFIX"
-NODE_ENV="development"
-```
-
 ### `config.json`
 Contains Discord server-specific configurations:
 - Guild ID and role mappings
@@ -128,6 +117,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 For questions, support, or feature requests, please visit our [project board](https://github.com/orgs/pesu-dev/projects/4/views/8) or join the discussion on the PESU Discord server.
+
 
 
 
