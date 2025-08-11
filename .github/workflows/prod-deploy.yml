@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
     SUPERUSER_TOKEN: ${{ secrets.PESU_DEV_SUPERUSER_TOKEN }}
-    ALLOWED_USERS: "sach-12,aditeyabaral"
+    ALLOWED_USERS: ${{ vars.PROD_DEPLOYMENT_ALLOWED_USERS }}
     DEPLOYMENT_PATH: ${{ vars.PROD_DEPLOYMENT_PATH }}
     PM2_APP_NAME: ${{ vars.PROD_PM2_APP_NAME }}
 
