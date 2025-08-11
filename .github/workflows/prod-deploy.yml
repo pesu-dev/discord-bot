@@ -16,10 +16,17 @@ jobs:
             - name: Check if user has permissions
               id: check-permissions
               run: |
-                  if [[ ! ",${{ env.ALLOWED_USERS }}," =~ ",${{ github.actor }}," ]]; then
-                      echo "❌ You do not have permission to trigger this workflow."
-                      echo "allowed=false" >> $GITHUB_OUTPUT
-                      exit 1
+                  PERMISSION_GRANTED=0
+                  IFS=',' read -ra USERS <<< "${{ env.ALLOWED_USERS }}"
+                  for user in "${USERS[@]}"; do
+                    if [[ "$user" == "${{ github.actor }}" ]]; then
+                      PERMISSION_GRANTED=1
+                      break
+                    fi
+                  done
+                  if [[ "$PERMISSION_GRANTED" -ne 1 ]]; then
+                    echo "❌ You do not have permission to trigger this workflow."
+                    exit 1
                   fi
                   echo "✅ Permission granted"
                   echo "user=${{ github.actor }}" >> $GITHUB_OUTPUT
@@ -74,7 +81,7 @@ jobs:
             - name: Merge changes
               if: steps.check-changes.outputs.has_changes == 'true'
               run: |
-                  git merge --no-ff origin/dev -m "Merge dev into main via GitHub Actions" || {
+                  git merge --no-ff origin/dev -m "Merge dev into main via GitHub Actions (triggered by ${{ github.actor }} at run ${{ github.run_id }})" || {
                     echo "❌ Merge conflict detected. Please resolve conflicts manually."
                     git merge --abort
                     exit 1
