@@ -7,6 +7,11 @@ jobs:
         if: github.actor == 'sach-12'
         runs-on: ubuntu-latest
         steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                ref: main
+
             - name: Fetch latest code from dev branch
               run: git fetch origin dev
 
