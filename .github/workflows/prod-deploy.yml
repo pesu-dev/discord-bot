@@ -1,0 +1,30 @@
+name: Production Merge and Deploy
+
+on: workflow_dispatch
+
+jobs:
+    merge:
+        if: github.actor == 'sach-12'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Fetch latest code from dev branch
+              run: git fetch origin dev
+
+            - name: Merge dev into main
+              run: git merge origin/dev
+
+            - name: Push changes to main branch
+              run: git push origin main
+
+    deploy:
+        if: github.actor == 'sach-12'
+        runs-on: discord-bot-deploy-runner
+        steps:
+            - name: Navigate to project directory
+              run: cd ~/discord-bot
+
+            - name: Pull latest code from main branch
+              run: git pull origin main
+
+            - name: Restart discord-bot with PM2
+              run: pm2 restart discord-bot

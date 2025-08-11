@@ -1,0 +1,20 @@
+name: Dev Deploy
+
+on:
+    push:
+        branches:
+            - dev
+
+jobs:
+    deploy:
+        runs-on: discord-bot-deploy-runner
+
+        steps:
+            - name: Navigate to project directory
+              run: cd ~/discord-bot-dev
+
+            - name: Pull latest code from dev branch
+              run: git pull origin dev
+
+            - name: Restart discord-bot-dev with PM2
+              run: pm2 restart discord-bot-dev
