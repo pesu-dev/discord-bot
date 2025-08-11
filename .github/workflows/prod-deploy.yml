@@ -106,7 +106,7 @@ jobs:
             - name: Install/Update dependencies
               run: |
                   cd ${{ env.DEPLOYMENT_PATH }}
-                  pip install -r src/requirements.txt
+                  pip install --break-system-packages -r src/requirements.txt
 
             - name: Restart discord-bot with PM2
               run: pm2 restart ${{ env.PM2_APP_NAME }}
@@ -114,7 +114,7 @@ jobs:
             - name: Health Check
               run: |
                   sleep 10 # Give bot time to start
-                  if pm2 status ${{ env.PM2_APP_NAME }} | grep -q "online"; then
+                  if pm2 describe ${{ env.PM2_APP_NAME }} | grep -q "online"; then
                     echo "✅ Bot is running successfully"
                   else
                     echo "❌ Bot failed to start properly"
