@@ -5,16 +5,36 @@ on:
         branches:
             - dev
 
+env:
+    DEPLOYMENT_PATH: ${{ vars.DEV_DEPLOYMENT_PATH }}
+    PM2_APP_NAME: ${{ vars.DEV_PM2_APP_NAME }}
+
 jobs:
     deploy:
         runs-on: discord-bot-deploy-runner
 
         steps:
-            - name: Navigate to project directory
-              run: cd ~/discord-bot-dev
-
             - name: Pull latest code from dev branch
-              run: git pull origin dev
+              run: |
+                  cd ${{ env.DEPLOYMENT_PATH }}
+                  git reset --hard HEAD  # ✅ Reset any local changes
+                  git pull origin dev
 
-            - name: Restart discord-bot-dev with PM2
-              run: pm2 restart discord-bot-dev
+            - name: Install/Update dependencies
+              run: |
+                  cd ${{ env.DEPLOYMENT_PATH }}
+                  pip install -r src/requirements.txt
+
+            - name: Restart discord-bot with PM2
+              run: pm2 restart ${{ env.PM2_APP_NAME }}
+
+            - name: Health Check
+              run: |
+                  sleep 10 # Give bot time to start
+                  if pm2 status ${{ env.PM2_APP_NAME }} | grep -q "online"; then
+                    echo "✅ Bot is running successfully"
+                  else
+                    echo "❌ Bot failed to start properly"
+                    pm2 logs ${{ env.PM2_APP_NAME }} --lines 10
+                    exit 1
+                  fi
