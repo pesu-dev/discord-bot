@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 import discord
@@ -11,6 +12,18 @@ from utils import general as ug
 
 load_dotenv()
 
+new_guild_id = os.getenv("GUILD_ID")
+
+with open("config.json", "r") as f:
+    config = json.load(f)
+
+if new_guild_id != "":
+    config["GUILD"]["ID"] = int(new_guild_id) 
+    with open("config.json", "w") as f:
+        json.dump(config, f, indent=4)
+    print("Updated GUILD_ID with new value from .env")
+else:
+    print("Using GUILD_ID from config without any changes")
 
 client = DiscordBot(
     command_prefix="!",
