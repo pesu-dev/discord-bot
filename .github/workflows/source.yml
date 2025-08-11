@@ -1,0 +1,34 @@
+name: Enforce PR Origin Policy
+
+on:
+    pull_request:
+        types: [opened, reopened, synchronize]
+
+jobs:
+    validate-pr-origin:
+        runs-on: ubuntu-latest
+        env:
+            PR_NUMBER: ${{ github.event.pull_request.number }}
+            SOURCE_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+            SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+            TARGET_REPO: ${{ github.repository }}
+            TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+
+        steps:
+            - name: Print PR source info
+              run: |
+                  echo "PR source information:"
+                  echo "  - PR Number: $PR_NUMBER"
+                  echo "  - Source repo: $SOURCE_REPO"
+                  echo "  - Source branch: $SOURCE_BRANCH"
+                  echo "  - Target repo: $TARGET_REPO"
+                  echo "  - Target branch: $TARGET_BRANCH"
+
+            - name: Validate PR target branch
+              run: |
+                  if [ "$TARGET_BRANCH" != "dev" ]; then
+                    echo "❌ PR must target the 'dev' branch."
+                    exit 1
+                  fi
+
+                  echo "✅ PR passed origin and target branch checks."
