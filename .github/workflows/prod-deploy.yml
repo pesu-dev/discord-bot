@@ -81,7 +81,7 @@ jobs:
             - name: Merge changes
               if: steps.check-changes.outputs.has_changes == 'true'
               run: |
-                  git merge --no-ff origin/dev -m "Merge dev into main via GitHub Actions (triggered by ${{ github.actor }} at run ${{ github.run_id }})" || {
+                  git merge --ff origin/dev || {
                     echo "❌ Merge conflict detected. Please resolve conflicts manually."
                     git merge --abort
                     exit 1
