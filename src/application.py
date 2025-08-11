@@ -25,8 +25,10 @@ if new_guild_id != "":
 else:
     print("Using GUILD_ID from config without any changes")
 
+bot_prefix = os.getenv("BOT_PREFIX")
+
 client = DiscordBot(
-    command_prefix="!",
+    command_prefix=bot_prefix,
     help_command=None,
     intents=Intents().all(),
     tree_cls=CommandTree,
@@ -122,3 +124,4 @@ if bot_token:
     client.run(bot_token)
 else:
     client.logger.error("BOT_TOKEN environment variable not set")
+
