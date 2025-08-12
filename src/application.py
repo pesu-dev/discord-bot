@@ -27,9 +27,8 @@ else:
 
 bot_prefix = os.getenv("BOT_PREFIX")
 
-
 client = DiscordBot(
-    command_prefix="botprefix",
+    command_prefix=bot_prefix,
     help_command=None,
     intents=Intents().all(),
     tree_cls=CommandTree,
