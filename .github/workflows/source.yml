@@ -1,9 +1,6 @@
 name: Enforce PR Origin Policy
 
 on:
-    merge_group:
-        types:
-            - checks_requested
     pull_request:
         branches:
             - "dev"
