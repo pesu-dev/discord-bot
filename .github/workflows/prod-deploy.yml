@@ -1,0 +1,139 @@
+name: Production Merge and Deploy
+
+on: workflow_dispatch
+
+env:
+    SUPERUSER_TOKEN: ${{ secrets.PESU_DEV_SUPERUSER_TOKEN }}
+    ALLOWED_USERS: ${{ vars.PROD_DEPLOYMENT_ALLOWED_USERS }}
+    DEPLOYMENT_PATH: ${{ vars.PROD_DEPLOYMENT_PATH }}
+    PM2_APP_NAME: ${{ vars.PROD_PM2_APP_NAME }}
+
+jobs:
+    check-permissions:
+        name: Check Permissions
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check if user has permissions
+              id: check-permissions
+              run: |
+                  PERMISSION_GRANTED=0
+                  IFS=',' read -ra USERS <<< "${{ env.ALLOWED_USERS }}"
+                  for user in "${USERS[@]}"; do
+                    if [[ "$user" == "${{ github.actor }}" ]]; then
+                      PERMISSION_GRANTED=1
+                      break
+                    fi
+                  done
+                  if [[ "$PERMISSION_GRANTED" -ne 1 ]]; then
+                    echo "❌ You do not have permission to trigger this workflow."
+                    exit 1
+                  fi
+                  echo "✅ Permission granted"
+                  echo "user=${{ github.actor }}" >> $GITHUB_OUTPUT
+                  echo "allowed=true" >> $GITHUB_OUTPUT
+    merge:
+        name: Merge dev to main
+        runs-on: ubuntu-latest
+        needs: [check-permissions]
+        outputs:
+            has_changes: ${{ steps.check-changes.outputs.has_changes }}
+            pre_merge_commit: ${{ steps.store-commit.outputs.commit }}
+        concurrency:
+            group: production-merge
+            cancel-in-progress: false
+        steps:
+            - name: Checkout main branch
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  token: ${{ env.SUPERUSER_TOKEN }}
+                  fetch-depth: 0
+
+            - name: Configure Git
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            - name: Store current commit before merge
+              id: store-commit
+              run: |
+                  CURRENT_COMMIT=$(git rev-parse HEAD)
+                  echo "commit=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+                  echo "📌 Stored pre-merge commit: $CURRENT_COMMIT"
+
+            - name: Fetch latest code from dev branch
+              id: check-changes
+              run: |
+                  set -e
+                  git fetch origin dev
+
+                  CHANGES=$(git rev-list main..origin/dev --count)
+                  echo "changes=$CHANGES" >> $GITHUB_OUTPUT
+                  if [ "$CHANGES" -eq "0" ]; then
+                    echo "ℹ️ No new changes to deploy"
+                    echo "has_changes=false" >> $GITHUB_OUTPUT
+                  else
+                    echo "has_changes=true" >> $GITHUB_OUTPUT 
+                    echo "📊 Found $CHANGES commits to merge"
+                    git log --oneline main..origin/dev
+                  fi
+
+            - name: Merge changes
+              if: steps.check-changes.outputs.has_changes == 'true'
+              run: |
+                  git merge --ff origin/dev || {
+                    echo "❌ Merge conflict detected. Please resolve conflicts manually."
+                    git merge --abort
+                    exit 1
+                  }
+
+            - name: Push changes to main branch
+              if: steps.check-changes.outputs.has_changes == 'true'
+              run: git push origin main
+
+    deploy:
+        name: Deploy to production
+        runs-on: discord-bot-deploy-runner
+        needs: merge
+        if: needs.merge.result == 'success' && needs.merge.outputs.has_changes == 'true'
+        steps:
+            - name: Pull latest code from main branch
+              run: |
+                  cd ${{ env.DEPLOYMENT_PATH }}
+                  git reset --hard HEAD  # ✅ Reset any local changes
+                  git pull origin main
+
+            - name: Install/Update dependencies
+              run: |
+                  cd ${{ env.DEPLOYMENT_PATH }}
+                  pip install --break-system-packages -r src/requirements.txt
+
+            - name: Restart discord-bot with PM2
+              run: pm2 restart ${{ env.PM2_APP_NAME }}
+
+            - name: Health Check
+              run: |
+                  sleep 10 # Give bot time to start
+                  if pm2 describe ${{ env.PM2_APP_NAME }} | grep -q "online"; then
+                    echo "✅ Bot is running successfully"
+                  else
+                    echo "❌ Bot failed to start properly"
+                    pm2 logs ${{ env.PM2_APP_NAME }} --lines 10
+                    exit 1
+                  fi
+
+    rollback:
+        name: Rollback on failure
+        runs-on: discord-bot-deploy-runner
+        needs: [merge, deploy]
+        if: failure() && needs.merge.result == 'success'
+        steps:
+            - name: Rollback to pre-merge commit
+              run: |
+                  cd ${{ env.DEPLOYMENT_PATH }}
+                  PRE_MERGE_COMMIT="${{ needs.merge.outputs.pre_merge_commit }}"
+                  echo "Rolling back to pre-merge commit: $PRE_MERGE_COMMIT"
+                  git reset --hard $PRE_MERGE_COMMIT
+
+            - name: Restart with previous version
+              run: pm2 restart ${{ env.PM2_APP_NAME }}
