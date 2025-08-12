@@ -17,7 +17,7 @@ new_guild_id = os.getenv("GUILD_ID")
 with open("config.json", "r") as f:
     config = json.load(f)
 
-if new_guild_id != "":
+if new_guild_id is not None and new_guild_id != "":
     config["GUILD"]["ID"] = int(new_guild_id) 
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
