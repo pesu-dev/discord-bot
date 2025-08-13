@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 from bot import DiscordBot
 import httpx
-
+import os
 
 class RoleSelect(discord.ui.Select):
     def __init__(self):
@@ -446,6 +446,59 @@ class SlashUtils(commands.Cog):
                 with open("faq.json", "r") as file:
                     data = json.load(file)
                 return data
+
+    @staticmethod
+    async def invite_user_to_github_org(github_username: str, org: str = None, team_slug: str = None) -> dict:
+        github_token=os.getenv("GITHUB_TOKEN")
+        github_org_name=os.getenv("GITHUB_ORG_NAME")
+        github_slug=os.getenv("GITHUB_SLUG")
+
+        if not github_token:
+            return {"success": False, "message": "GitHub token not configured", "status_code": 500}
+        headers = {
+          "Accept": "application/vnd.github+json",
+          "Authorization": f"Bearer {github_token}",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "PESU-Discord-Bot"
+        }
+        try:
+            async with httpx.AsyncClient(headers=headers) as client:
+                org_invite_url = f"https://api.github.com/orgs/{github_org_name}/invitations"
+                org_payload = {
+                    "invitee_id": None,
+                    "email": None,
+                    "role": "direct_member"
+                }
+                user_response = await client.get(f"https://api.github.com/users/{github_username}")
+                if user_response.status_code != 200:
+                    return {"success": False, "message": f"GitHub user '{github_username}' not found", "status_code": 404}
+                user_data = user_response.json()
+                org_payload["invitee_id"] = user_data["id"]
+                org_response = await client.post(org_invite_url, json=org_payload)
+
+                if org_response.status_code == 404: 
+                    return {"success": False, "message": f"Failed to invite to org: {org_response.text}", "status_code": org_response.status_code}
+                
+                team_url = f"https://api.github.com/orgs/{github_org_name}/teams/{github_slug}/memberships/{github_username}"
+                team_payload = {"role": "member"}
+                team_response = await client.put(team_url, json=team_payload)
+
+                data = team_response.json()
+                state = data["state"]
+
+                if team_response and state == "active" :
+                    return {"success": True, "message": f"you are  already a member of the organization/team", "status_code": 200}
+                if team_response.status_code in [200, 201] :
+                    return {"success": True, "message": f"Successfully invited {github_username} to {github_org_name}", "status_code": 200}
+                else:
+                    return {"success": False, "message": f"Invited to org but failed to add to team: {team_response.text}", "status_code": team_response.status_code}
+                
+        except Exception as e:
+            return {"success": False, "message": f"Unexpected error: {str(e)}", "status_code": 500}
+
+
+
+
         
     async def get_data(self):
         if not self.cached_data:
@@ -630,6 +683,35 @@ class SlashUtils(commands.Cog):
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ):
         await interaction.followup.send(embed=ug.build_unknown_error_embed(error))
+
+
+    @app_commands.command(name="contribute",description="add a member with Dev Engineer role to github org")
+    @app_commands.describe(
+        github_username="GitHub username to send invite",
+    )
+    async def invite(
+        self,
+        interaction: discord.Interaction,
+        github_username:str
+    ):
+        if not ug.has_bot_dev_permissions(interaction.user):
+            await interaction.response.send_message(
+                "you do not have Dev engineer role",ephemeral=True
+            )
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+
+        result = await SlashUtils.invite_user_to_github_org(github_username)
+
+        if result["success"]:
+            await interaction.followup.send(
+                f"{result['message']}",ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f"Error : {result['message']}",ephemeral=True
+            )
 
 
 async def setup(client: DiscordBot):
