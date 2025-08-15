@@ -40,6 +40,7 @@ jobs:
         runs-on: discord-bot-deploy-runner
 
         steps:
+
             - name: GHCR login
               uses: docker/login-action@v3
               with:
@@ -47,26 +48,15 @@ jobs:
                 username: ${{ github.repository_owner }}
                 password: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Pull latest image
-              run: docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
-            - name: Stop and delete old container
+            - name: Pull latest image and restart 
               run: |
-                if [ "$(docker ps -q -f name=${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }})" ]; then
-                  echo "Stopping and removing existing container"
-                  docker stop ${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}
-                  docker rm ${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}
-                else
-                  echo "No existing container found with name ${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}"
-                fi
+                REPO_OWNER=${{ github.repository_owner }} \
+                IMAGE_TAG=${{ env.IMAGE_TAG }} \
+                docker compose pull
 
-            - name: Run new container
-              run: |
-                docker run -d \
-                  --name ${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }} \
-                  --restart always \
-                  ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
+                REPO_OWNER=${{ github.repository_owner }} \
+                IMAGE_TAG=${{ env.IMAGE_TAG }} \
+                docker compose up -d
 
             - name: Health Check
               run: |
