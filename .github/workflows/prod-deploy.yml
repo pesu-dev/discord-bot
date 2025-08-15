@@ -101,16 +101,21 @@ jobs:
         - name: Checkout repo
           uses: actions/checkout@v4
 
-        - name: Install GitHub CLI
-          uses: cli/cli-action@v2
-
         - name: Trigger build and push
           env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: |
-            RUN_ID=$(gh workflow run "Build and Push Docker Image to GHCR" --ref main --json id --jq .id)
-            echo "Waiting for build to finish"
-            gh run watch $RUN_ID
+            gh workflow run "Build and Push Docker Image to GHCR" \
+              --ref main \
+              --field ref=main
+            sleep 10
+            RUN_ID=$(gh run list \
+              --workflow "Build and Push Docker Image to GHCR" \
+              --branch main \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId')
+            gh run watch "$RUN_ID"
 
     deploy:
         name: Deploy image to production
