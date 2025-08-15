@@ -148,14 +148,14 @@ jobs:
 
             - name: Health Check
               run: |
-                  sleep 10 # Give bot time to start
-                  if pm2 describe ${{ env.PM2_APP_NAME }} | grep -q "online"; then
-                    echo "✅ Bot is running successfully"
-                  else
-                    echo "❌ Bot failed to start properly"
-                    pm2 logs ${{ env.PM2_APP_NAME }} --lines 10
-                    exit 1
-                  fi
+                sleep 10
+                if docker ps --filter "name=${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}" --filter "status=running" --format '{{.Names}}' | grep -q "${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}"; then
+                  echo "Production Container is running successfully"
+                else
+                  echo "Production Container failed to start"
+                  docker logs ${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }} --tail 20
+                  exit 1
+                fi
 
     # rollback:
     #     name: Rollback on failure
