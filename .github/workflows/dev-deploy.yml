@@ -8,9 +8,6 @@ on:
 env:
     DEPLOYMENT_PATH: ${{ vars.DEV_DEPLOYMENT_PATH }}
     PM2_APP_NAME: ${{ vars.DEV_PM2_APP_NAME }}
-    IMAGE_NAME: discord-bot
-    IMAGE_TAG: dev                    
-    CONTAINER_NAME: discord-bot  
 
 jobs:
 
@@ -33,20 +30,20 @@ jobs:
             - name: Pull latest image and restart 
               run: |
                 REPO_OWNER=${{ github.repository_owner }} \
-                IMAGE_TAG=${{ env.IMAGE_TAG }} \
+                IMAGE_TAG=${{ vars.DEV_DOCKER_IMAGE_TAG }} \
                 docker compose pull
 
                 REPO_OWNER=${{ github.repository_owner }} \
-                IMAGE_TAG=${{ env.IMAGE_TAG }} \
+                IMAGE_TAG=${{ vars.DEV_DOCKER_IMAGE_TAG }} \
                 docker compose up -d
 
             - name: Health Check
               run: |
                 sleep 10
-                if docker ps --filter "name=${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}" --filter "status=running" --format '{{.Names}}' | grep -q "${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }}"; then
+                if docker ps --filter "name=${{ vars.DEV_DOCKER_CONTAINER_NAME }}" --filter "status=running" --format '{{.Names}}' | grep -q "${{ vars.DEV_DOCKER_CONTAINER_NAME }}"; then
                   echo "Dev Container is running successfully"
                 else
                   echo "Dev Container failed to start"
-                  docker logs ${{ env.CONTAINER_NAME }}-${{ env.IMAGE_TAG }} --tail 20
+                  docker logs ${{ vars.DEV_DOCKER_CONTAINER_NAME }} --tail 20
                   exit 1
                 fi
