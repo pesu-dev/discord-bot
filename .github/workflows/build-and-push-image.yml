@@ -3,9 +3,15 @@ name: Build and Push Docker Image to GHCR
 on:
   workflow_dispatch:
     inputs:
-      ref:
+      tag:
         description: 'Branch or tag to build from'
         required: true
+
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -25,22 +31,12 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Decide PROD or DEV
-        id: vars
-        run: |
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            echo "TAG=prod" >> $GITHUB_OUTPUT
-          else
-            echo "TAG=dev" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-
       - name: Build Docker image
         run: |
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/discord-bot:${{ steps.vars.outputs.TAG }} \
+            -t ghcr.io/${{ github.repository_owner }}/discord-bot:${{ inputs.tag }} \
             .
 
       - name: Push image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/discord-bot:${{ steps.vars.outputs.TAG }}
+          docker push ghcr.io/${{ github.repository_owner }}/discord-bot:${{ inputs.tag }}

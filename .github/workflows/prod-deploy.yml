@@ -96,28 +96,12 @@ jobs:
               run: git push origin main
 
     build_and_push_image:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout repo
-          uses: actions/checkout@v4
-
-        - name: Trigger build and push
-          env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: |
-            gh workflow run "Build and Push Docker Image to GHCR" \
-              --ref main \
-              --field ref=main
-            sleep 10
-            RUN_ID=$(gh run list \
-              --workflow "Build and Push Docker Image to GHCR" \
-              --branch main \
-              --limit 1 \
-              --json databaseId \
-              --jq '.[0].databaseId')
-            gh run watch "$RUN_ID"
+      uses: ./.github/workflows/build-and-push-image.yml
+      with:
+        tag: prod
 
     deploy:
+        needs: build_and_push_image
         name: Deploy image to production
         runs-on: discord-bot-deploy-runner
         needs: merge
