@@ -108,8 +108,9 @@ class Events(commands.Cog):
             # Check for matches
             if any(re.search(pattern, content) for pattern in patterns):
                 gif_url = "https://tenor.com/view/pes-pes-college-pesu-pes-univercity-pes-rr-gif-26661455"
-                reply_text = f"Did someone mention EC Campus? 👀\n{gif_url}"
+                reply_text = "Did someone mention EC Campus? 👀"
                 await message.reply(reply_text)
+                await message.channel.send(gif_url)
 
         # Allow normal commands to keep working
         await self.client.process_commands(message)
