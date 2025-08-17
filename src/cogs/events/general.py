@@ -1,6 +1,8 @@
 import re
+import os
 import random
 import discord
+import asyncio
 from discord.ext import commands
 from datetime import datetime
 from bot import DiscordBot
@@ -96,7 +98,7 @@ class Events(commands.Cog):
         if message.author.bot:
             return
         
-        if random.random() <= 0.5: # 50% chance
+        if os.getenv("APP_ENV") == "prod" and random.random() <= 0.5: # 50% chance and prod deployment
             # Special EC Campus keyword patterns. Only check for words, not internal matches
             patterns = [
                 r"\becc\b",
@@ -109,8 +111,10 @@ class Events(commands.Cog):
             if any(re.search(pattern, content) for pattern in patterns):
                 gif_url = "https://tenor.com/view/pes-pes-college-pesu-pes-univercity-pes-rr-gif-26661455"
                 reply_text = "Did someone mention EC Campus? 👀"
-                await message.reply(reply_text)
-                await message.channel.send(gif_url)
+                async with message.channel.typing():
+                    await asyncio.sleep(1)
+                    await message.reply(reply_text)
+                    await message.channel.send(gif_url)
 
         # Allow normal commands to keep working
         await self.client.process_commands(message)
