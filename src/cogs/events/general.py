@@ -1,4 +1,8 @@
+import re
+import os
+import random
 import discord
+import asyncio
 from discord.ext import commands
 from datetime import datetime
 from bot import DiscordBot
@@ -89,7 +93,32 @@ class Events(commands.Cog):
                 if isinstance(bot_logs, discord.TextChannel):
                     await bot_logs.send(f"Linked record of {member.mention} has been deleted.!")
 
-                
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+        
+        if os.getenv("APP_ENV") == "prod" and random.random() <= 0.5: # 50% chance and prod deployment
+            # Special EC Campus keyword patterns. Only check for words, not internal matches
+            patterns = [
+                r"\becc\b",
+                r"\bec campus\b",
+                r"\bec\b"
+            ]
+            # Normalize message content to handle case insensitive matches
+            content = message.content.lower()
+            # Check for matches
+            if any(re.search(pattern, content) for pattern in patterns):
+                gif_url = "https://tenor.com/view/pes-pes-college-pesu-pes-univercity-pes-rr-gif-26661455"
+                reply_text = "Did someone mention EC Campus? 👀"
+                async with message.channel.typing():
+                    await asyncio.sleep(1)
+                    await message.reply(reply_text)
+                    await message.channel.send(gif_url)
+
+        # Allow normal commands to keep working
+        await self.client.process_commands(message)
+
     @commands.Cog.listener()
     async def on_message_delete(self, message):
         if message.author.bot:
