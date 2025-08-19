@@ -92,6 +92,20 @@ jobs:
               if: steps.check-changes.outputs.has_changes == 'true'
               run: git push origin main
 
+    rollback_image:
+      runs-on: discord-bot-deploy-runner
+      steps:
+        - name: Tagging Image as rollback
+          run: |
+            if docker ps --filter "name=${{ vars.PROD_DOCKER_CONTAINER_NAME }}" --format '{{.Image}}'; then
+              CURRENT_IMAGE=$(docker ps --filter "name=${{ vars.PROD_DOCKER_CONTAINER_NAME }}" --format '{{.Image}}')
+              echo "Tagging current image as rollback: $CURRENT_IMAGE -> ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback"
+              docker tag $CURRENT_IMAGE ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
+              docker push ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
+            else
+              echo "No running container found. Skipping rollback tag."
+            fi
+
     build_and_push_image:
       uses: ./.github/workflows/build-and-push-image.yml
       with:
@@ -134,18 +148,19 @@ jobs:
                   exit 1
                 fi
 
-    # rollback:
-    #     name: Rollback on failure
-    #     runs-on: discord-bot-deploy-runner
-    #     needs: [merge, deploy]
-    #     if: failure() && needs.merge.result == 'success'
-    #     steps:
-    #         - name: Rollback to pre-merge commit
-    #           run: |
-    #               cd ${{ env.DEPLOYMENT_PATH }}
-    #               PRE_MERGE_COMMIT="${{ needs.merge.outputs.pre_merge_commit }}"
-    #               echo "Rolling back to pre-merge commit: $PRE_MERGE_COMMIT"
-    #               git reset --hard $PRE_MERGE_COMMIT
-
-    #         - name: Restart with previous version
-    #           run: pm2 restart ${{ env.PM2_APP_NAME }}
+    rollback:
+        name: Rollback on failure
+        runs-on: discord-bot-deploy-runner
+        needs: [merge, deploy]
+        run: |
+          sleep 15  # wait for container to start
+          if docker ps --filter "name=${{ vars.PROD_DOCKER_CONTAINER_NAME }}" --filter "status=running" --format '{{.Names}}' | grep -q "${{ vars.PROD_DOCKER_CONTAINER_NAME }}"; then
+            echo "Prod container is running successfully"
+          else
+            echo "Deployment failed. Rolling back..."
+            docker rm -f ${{ vars.PROD_DOCKER_CONTAINER_NAME }} || true
+            docker run -d \
+              --name ${{ vars.PROD_DOCKER_CONTAINER_NAME }} \
+              ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
+            exit 1
+          fi
