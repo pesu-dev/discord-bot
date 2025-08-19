@@ -7,9 +7,6 @@ env:
     ALLOWED_USERS: ${{ vars.PROD_DEPLOYMENT_ALLOWED_USERS }}
     DEPLOYMENT_PATH: ${{ vars.PROD_DEPLOYMENT_PATH }}
     PM2_APP_NAME: ${{ vars.PROD_PM2_APP_NAME }}
-    IMAGE_NAME: discord-bot
-    IMAGE_TAG: prod                    
-    CONTAINER_NAME: discord-bot  
 
 
 jobs:
