@@ -5,8 +5,6 @@ on: workflow_dispatch
 env:
     SUPERUSER_TOKEN: ${{ secrets.PESU_DEV_SUPERUSER_TOKEN }}
     ALLOWED_USERS: ${{ vars.PROD_DEPLOYMENT_ALLOWED_USERS }}
-    DEPLOYMENT_PATH: ${{ vars.PROD_DEPLOYMENT_PATH }}
-    PM2_APP_NAME: ${{ vars.PROD_PM2_APP_NAME }}
 
 
 jobs:
@@ -93,18 +91,23 @@ jobs:
               run: git push origin main
 
     rollback_image:
-      runs-on: discord-bot-deploy-runner
+      runs-on: ubuntu-latest
       steps:
+        - name: GHCR login
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.repository_owner }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
         - name: Tagging Image as rollback
           run: |
-            if docker ps --filter "name=${{ vars.PROD_DOCKER_CONTAINER_NAME }}" --format '{{.Image}}'; then
-              CURRENT_IMAGE=$(docker ps --filter "name=${{ vars.PROD_DOCKER_CONTAINER_NAME }}" --format '{{.Image}}')
-              echo "Tagging current image as rollback: $CURRENT_IMAGE -> ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback"
-              docker tag $CURRENT_IMAGE ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
-              docker push ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
-            else
-              echo "No running container found. Skipping rollback tag."
-            fi
+            IMAGE=ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}
+            docker pull $IMAGE:${{ vars.PROD_DOCKER_IMAGE_TAG}}
+            echo "Tagging current prod image as rollback"
+            docker tag $IMAGE:${{ vars.PROD_DOCKER_IMAGE_TAG}} $IMAGE:rollback
+            echo "Pushing rollback tag"
+            docker push $IMAGE:rollback
 
     build_and_push_image:
       uses: ./.github/workflows/build-and-push-image.yml
@@ -152,15 +155,20 @@ jobs:
         name: Rollback on failure
         runs-on: discord-bot-deploy-runner
         needs: [merge, deploy]
-        run: |
-          sleep 15  # wait for container to start
-          if docker ps --filter "name=${{ vars.PROD_DOCKER_CONTAINER_NAME }}" --filter "status=running" --format '{{.Names}}' | grep -q "${{ vars.PROD_DOCKER_CONTAINER_NAME }}"; then
-            echo "Prod container is running successfully"
-          else
-            echo "Deployment failed. Rolling back..."
-            docker rm -f ${{ vars.PROD_DOCKER_CONTAINER_NAME }} || true
-            docker run -d \
-              --name ${{ vars.PROD_DOCKER_CONTAINER_NAME }} \
-              ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
-            exit 1
-          fi
+        if: failure() && needs.merge.result == 'success'
+        steps:
+          - name: GHCR login
+            uses: docker/login-action@v3
+            with:
+              registry: ghcr.io
+              username: ${{ github.repository_owner }}
+              password: ${{ secrets.GITHUB_TOKEN }}
+
+          - name: Switch to rollback image
+            run: |
+              echo "Deployment failed. Rolling back..."
+              docker rm -f ${{ vars.PROD_DOCKER_CONTAINER_NAME }} || true
+              docker run -d \
+                --name ${{ vars.PROD_DOCKER_CONTAINER_NAME }} \
+                ghcr.io/${{ github.repository_owner }}/${{ vars.DOCKER_IMAGE_NAME }}:rollback
+              exit 1
