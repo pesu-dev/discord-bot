@@ -5,10 +5,6 @@ on:
         branches:
             - dev
 
-env:
-    DEPLOYMENT_PATH: ${{ vars.DEV_DEPLOYMENT_PATH }}
-    PM2_APP_NAME: ${{ vars.DEV_PM2_APP_NAME }}
-
 jobs:
 
     build_and_push_image:

@@ -33,10 +33,15 @@ jobs:
 
       - name: Build Docker image
         run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/discord-bot
+
           docker build \
-            -t ghcr.io/${{ github.repository_owner }}/discord-bot:${{ inputs.tag }} \
+            -t $IMAGE:${{ inputs.tag }} \
+            -t $IMAGE:${{ github.sha }} \
             .
 
-      - name: Push image to GHCR
+      - name: Push images to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/discord-bot:${{ inputs.tag }}
+          IMAGE=ghcr.io/${{ github.repository_owner }}/discord-bot
+          docker push $IMAGE:${{ inputs.tag }}
+          docker push $IMAGE:${{ github.sha }}
