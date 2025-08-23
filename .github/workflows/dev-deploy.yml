@@ -25,6 +25,10 @@ jobs:
 
             - name: Pull latest image and restart 
               run: |
+                cd ${{ env.DEPLOYMENT_PATH }}
+                git reset --hard HEAD
+                git pull origin dev
+
                 REPO_OWNER=${{ github.repository_owner }} \
                 IMAGE_TAG=${{ vars.DEV_DOCKER_IMAGE_TAG }} \
                 docker compose pull
