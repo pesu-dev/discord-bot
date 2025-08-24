@@ -75,10 +75,16 @@ class SlashAnon(commands.Cog):
     async def before_check_anon_bans_loop(self):
         await self.client.wait_until_ready()
 
-    @tasks.loop(hours=24)
+    @tasks.loop(seconds=10)
     async def clear_anon_cache_loop(self):
         if self.anon_cache:
-            self.anon_cache.clear()
+            # gets current time
+            current_time = datetime.datetime.now(datetime.timezone.utc)
+            # amount of time in seconds the bot waits to clear the cache.
+            min_time=86400
+            # cache clearing logic
+            for key,value in self.anon_cache.items():
+                self.anon_cache[key] = [msg for msg in value if (current_time-msg[1]).total_seconds()<min_time]
 
     @clear_anon_cache_loop.before_loop
     async def before_clear_anon_cache_loop(self):
@@ -186,7 +192,8 @@ class SlashAnon(commands.Cog):
         if str(interaction.user.id) not in self.anon_cache:
             self.anon_cache[str(interaction.user.id)] = []
 
-        self.anon_cache[str(interaction.user.id)].append(str(anonMessage.id))
+        self.anon_cache[str(interaction.user.id)].append([str(anonMessage.id),datetime.datetime.now(datetime.timezone.utc)])
+        print(self.anon_cache)
 
     @anon.error
     async def anon_error(
