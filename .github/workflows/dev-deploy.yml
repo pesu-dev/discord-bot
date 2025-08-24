@@ -16,8 +16,11 @@ jobs:
         tag: dev
 
     deploy:
-        needs: build_and_push_image
+        needs: [build_and_push_image]
         runs-on: discord-bot-deploy-runner
+        permissions:
+          packages: write
+          contents: read
         steps:
             - name: GHCR login
               uses: docker/login-action@v3
