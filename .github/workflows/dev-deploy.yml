@@ -5,36 +5,45 @@ on:
         branches:
             - dev
 
-env:
-    DEPLOYMENT_PATH: ${{ vars.DEV_DEPLOYMENT_PATH }}
-    PM2_APP_NAME: ${{ vars.DEV_PM2_APP_NAME }}
-
 jobs:
+
+    build_and_push_image:
+      uses: ./.github/workflows/build-and-push-image.yml
+      with:
+        tag: dev
+
     deploy:
+        needs: build_and_push_image
         runs-on: discord-bot-deploy-runner
-
         steps:
-            - name: Pull latest code from dev branch
-              run: |
-                  cd ${{ env.DEPLOYMENT_PATH }}
-                  git reset --hard HEAD  # ✅ Reset any local changes
-                  git pull origin dev
+            - name: GHCR login
+              uses: docker/login-action@v3
+              with:
+                registry: ghcr.io
+                username: ${{ github.repository_owner }}
+                password: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Install/Update dependencies
+            - name: Pull latest image and restart 
               run: |
-                  cd ${{ env.DEPLOYMENT_PATH }}
-                  pip install --break-system-packages -r src/requirements.txt
+                cd ${{ env.DEPLOYMENT_PATH }}
+                git reset --hard HEAD
+                git pull origin dev
 
-            - name: Restart discord-bot with PM2
-              run: pm2 restart ${{ env.PM2_APP_NAME }}
+                REPO_OWNER=${{ github.repository_owner }} \
+                IMAGE_TAG=${{ vars.DEV_DOCKER_IMAGE_TAG }} \
+                docker compose pull
+
+                REPO_OWNER=${{ github.repository_owner }} \
+                IMAGE_TAG=${{ vars.DEV_DOCKER_IMAGE_TAG }} \
+                docker compose up -d
 
             - name: Health Check
               run: |
-                  sleep 10 # Give bot time to start
-                  if pm2 describe ${{ env.PM2_APP_NAME }} | grep -q "online"; then
-                    echo "✅ Bot is running successfully"
-                  else
-                    echo "❌ Bot failed to start properly"
-                    pm2 logs ${{ env.PM2_APP_NAME }} --lines 10
-                    exit 1
-                  fi
+                sleep 10
+                if docker ps --filter "name=${{ vars.DEV_DOCKER_CONTAINER_NAME }}" --filter "status=running" --format '{{.Names}}' | grep -q "${{ vars.DEV_DOCKER_CONTAINER_NAME }}"; then
+                  echo "Dev Container is running successfully"
+                else
+                  echo "Dev Container failed to start"
+                  docker logs ${{ vars.DEV_DOCKER_CONTAINER_NAME }} --tail 20
+                  exit 1
+                fi
