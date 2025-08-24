@@ -18,17 +18,7 @@ jobs:
     deploy:
         needs: [build_and_push_image]
         runs-on: discord-bot-deploy-runner
-        permissions:
-          packages: write
-          contents: read
         steps:
-            - name: GHCR login
-              uses: docker/login-action@v3
-              with:
-                registry: ghcr.io
-                username: ${{ github.repository_owner }}
-                password: ${{ secrets.GITHUB_TOKEN }}
-
             - name: Pull latest image and restart 
               run: |
                 cd ${{ env.DEPLOYMENT_PATH }}
