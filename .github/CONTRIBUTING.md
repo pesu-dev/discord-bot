@@ -84,15 +84,13 @@ This section provides instructions for setting up your development environment t
 
 3. **Install dependencies:**
    ```bash
-   cd src
    pip install -r requirements.txt
    ```
 
 ### Set Up Environment Variables
 
-1. **Create a `.env` file in the `src` directory:**
+1. **Create a `.env` file in the project's root directory:**
    ```bash
-   cd src
    touch .env
    ```
 
@@ -132,12 +130,7 @@ Ensure you have:
 
 To run the bot locally for development:
 
-1. **Navigate to the src directory:**
-   ```bash
-   cd src
-   ```
-
-2. **Run the bot:**
+1. **Run the bot:**
    ```bash
    python3 application.py
    ```

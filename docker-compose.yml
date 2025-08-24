@@ -1,0 +1,6 @@
+services:
+  discord-bot:
+    image: ghcr.io/${REPO_OWNER}/discord-bot:${IMAGE_TAG}
+    container_name: discord-bot-${IMAGE_TAG}
+    restart: always
+    env_file: .env

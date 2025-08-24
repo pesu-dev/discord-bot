@@ -1,6 +1,0 @@
-python-dotenv==1.1.0
-discord.py==2.5.2
-ua-generator==2.0.7
-typing-extensions==4.13.2
-pymongo==4.13.2
-httpx==0.28.1
