@@ -37,7 +37,6 @@ For detailed development setup and contribution instructions, see our [Contribut
 ### Project Structure
 
 ```
-src/
 ├── application.py          # Main application entry point
 ├── bot.py                 # Bot class definition with MongoDB integration
 ├── config.json           # Guild and role configurations

@@ -5,5 +5,5 @@
 .github/ @sach-12
 LICENSE @sach-12
 README.md @sach-12
-src/config.json @sach-12
-src/requirements.txt @sach-12
+config.json @sach-12
+requirements.txt @sach-12

@@ -3,6 +3,7 @@ name: Production Merge and Deploy
 on: workflow_dispatch
 
 env:
+    DEPLOYMENT_PATH: ${{ vars.PROD_DEPLOYMENT_PATH }}
     SUPERUSER_TOKEN: ${{ secrets.PESU_DEV_SUPERUSER_TOKEN }}
     ALLOWED_USERS: ${{ vars.PROD_DEPLOYMENT_ALLOWED_USERS }}
 
@@ -36,7 +37,6 @@ jobs:
         needs: [check-permissions]
         outputs:
             has_changes: ${{ steps.check-changes.outputs.has_changes }}
-            pre_merge_commit: ${{ steps.store-commit.outputs.commit }}
         concurrency:
             group: production-merge
             cancel-in-progress: false
@@ -52,13 +52,6 @@ jobs:
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-
-            - name: Store current commit before merge
-              id: store-commit
-              run: |
-                  CURRENT_COMMIT=$(git rev-parse HEAD)
-                  echo "commit=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
-                  echo "📌 Stored pre-merge commit: $CURRENT_COMMIT"
 
             - name: Fetch latest code from dev branch
               id: check-changes
@@ -91,6 +84,8 @@ jobs:
               run: git push origin main
 
     rollback_image:
+      needs: [merge]
+      if: needs.merge.result == 'success' && needs.merge.outputs.has_changes == 'true'
       runs-on: ubuntu-latest
       steps:
         - name: GHCR login
@@ -110,16 +105,15 @@ jobs:
             docker push $IMAGE:rollback
 
     build_and_push_image:
+      needs: [rollback_image]
       uses: ./.github/workflows/build-and-push-image.yml
       with:
         tag: prod
 
     deploy:
-        needs: build_and_push_image
+        needs: [build_and_push_image]
         name: Deploy image to production
         runs-on: discord-bot-deploy-runner
-        needs: merge
-        if: needs.merge.result == 'success' && needs.merge.outputs.has_changes == 'true'
         steps:
             - name: GHCR login
               uses: docker/login-action@v3
@@ -158,8 +152,8 @@ jobs:
     rollback:
         name: Rollback on failure
         runs-on: discord-bot-deploy-runner
-        needs: [merge, deploy]
-        if: failure() && needs.merge.result == 'success'
+        needs: [deploy]
+        if: failure()
         steps:
           - name: GHCR login
             uses: docker/login-action@v3

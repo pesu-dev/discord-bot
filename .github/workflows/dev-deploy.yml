@@ -5,6 +5,9 @@ on:
         branches:
             - dev
 
+env:
+    DEPLOYMENT_PATH: ${{ vars.DEV_DEPLOYMENT_PATH }}
+
 jobs:
 
     build_and_push_image:

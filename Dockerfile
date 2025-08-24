@@ -1,7 +1,11 @@
 FROM python:3.12-slim-bookworm
 
-COPY src /src
-COPY README.md /README.md
-RUN pip install -r src/requirements.txt
-WORKDIR /src
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
 CMD ["python", "application.py"]
