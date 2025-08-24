@@ -192,8 +192,9 @@ class SlashAnon(commands.Cog):
         if str(interaction.user.id) not in self.anon_cache:
             self.anon_cache[str(interaction.user.id)] = []
 
+        # adds a list which contains the message id as the first element and the time the message was sent as the second element
         self.anon_cache[str(interaction.user.id)].append([str(anonMessage.id),datetime.datetime.now(datetime.timezone.utc)])
-        print(self.anon_cache)
+        
 
     @anon.error
     async def anon_error(
