@@ -12,15 +12,13 @@ def load_config_value(key: str, default=None):
 def load_role_id(role_name: str) -> int | None:
     config = load_config_value("GUILD")
     if config and "ROLES" in config:
-        return config["ROLES"].get(role_name, None)
+        return config["ROLES"]["FUNCTIONAL"].get(role_name, None)
     return None
 
 
-def load_channel_id(channel_name: str, logs: bool = False) -> int | None:
+def load_channel_id(channel_name: str) -> int | None:
     config = load_config_value("GUILD")
     if config and "CHANNELS" in config:
-        if logs:
-            return config["CHANNELS"]["LOGS"].get(channel_name, None)
         return config["CHANNELS"].get(channel_name, {}).get("ID", None)
     return None
 

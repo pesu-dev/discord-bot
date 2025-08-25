@@ -2,7 +2,6 @@ import discord
 import utils.general as ug
 from discord import app_commands, Interaction, SelectOption
 from discord.ext import commands
-import ua_generator
 import json
 from pathlib import Path
 from bot import DiscordBot
@@ -396,7 +395,7 @@ class SlashUtils(commands.Cog):
     @staticmethod
     async def fetch_data():
         headers = {
-            "User-Agent": ua_generator.generate().text,
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
             "Accept-Encoding": "gzip, deflate, br, zstd",
             "Accept": "*/*",
             "Connection": "keep-alive",

@@ -122,7 +122,7 @@ class SlashMod(commands.Cog):
                 except discord.HTTPException:
                     pass
 
-            mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+            mod_logs_id = ug.load_channel_id("MOD_LOGS")
             if not mod_logs_id:
                 continue
             mod_logs = guild.get_channel(int(mod_logs_id))
@@ -197,7 +197,7 @@ class SlashMod(commands.Cog):
         )
         embed.set_footer(text="PESU Bot")
         await interaction.response.send_message(embed=embed)
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs_channel = self.client.get_channel(int(mod_logs_id))
@@ -207,7 +207,7 @@ class SlashMod(commands.Cog):
             await mod_logs_channel.send(embed=embed)
         else:
             print(
-                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
+                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS')}"
             )
             
     @commands.command(name="echo", description="Echoes a message to the target channel")
@@ -238,7 +238,7 @@ class SlashMod(commands.Cog):
         if not ctx.guild:
             return
 
-        mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mods_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mods_logs_id:
             return
         mods_logs = ctx.guild.get_channel(mods_logs_id)
@@ -287,7 +287,7 @@ class SlashMod(commands.Cog):
         await interaction.followup.send(f"Message sent to {channel.mention}", ephemeral=True)
         if not interaction.guild:
             return
-        mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mods_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mods_logs_id:
             return
         mods_logs = interaction.guild.get_channel(mods_logs_id)
@@ -529,7 +529,7 @@ class SlashMod(commands.Cog):
         mute_embed.set_footer(text="PESU Bot")
         await interaction.followup.send(embed=mute_embed)
 
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs = interaction.guild.get_channel(int(mod_logs_id))
@@ -636,7 +636,7 @@ class SlashMod(commands.Cog):
 
         await interaction.followup.send(embed=unmute_embed)
 
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs = interaction.guild.get_channel(int(mod_logs_id))
@@ -722,7 +722,7 @@ class SlashMod(commands.Cog):
             timestamp=discord.utils.utcnow(),
         )
         embed.set_footer(text="PESU Bot")
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs_channel = self.client.get_channel(int(mod_logs_id))
@@ -732,7 +732,7 @@ class SlashMod(commands.Cog):
             await mod_logs_channel.send(embed=embed)
         else:
             print(
-                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
+                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS')}"
             )
 
     @purge.error
@@ -822,7 +822,7 @@ class SlashMod(commands.Cog):
             name="Moderator", value=interaction.user.mention, inline=True
         )
         lock_logs_embed.add_field(name="Reason", value=reason, inline=False)
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs_channel = self.client.get_channel(int(mod_logs_id))
@@ -832,7 +832,7 @@ class SlashMod(commands.Cog):
             await mod_logs_channel.send(embed=lock_logs_embed)
         else:
             print(
-                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
+                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS')}"
             )
 
     @lock_channel.error
@@ -919,7 +919,7 @@ class SlashMod(commands.Cog):
         unlock_logs_embed.add_field(
             name="Moderator", value=interaction.user.mention, inline=True
         )
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs_channel = self.client.get_channel(int(mod_logs_id))
@@ -929,7 +929,7 @@ class SlashMod(commands.Cog):
             await mod_logs_channel.send(embed=unlock_logs_embed)
         else:
             print(
-                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS', logs=True)}"
+                f"Mod logs channel not found: {ug.load_channel_id('MOD_LOGS')}"
             )
 
     @unlock_channel.error
@@ -1029,7 +1029,7 @@ class SlashMod(commands.Cog):
 
         await interaction.followup.send(embed=timeout_embed)
 
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs = self.client.get_channel(int(mod_logs_id))
@@ -1109,7 +1109,7 @@ class SlashMod(commands.Cog):
             content=f"{member.mention}", embed=detimeout_embed
         )
 
-        mod_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        mod_logs_id = ug.load_channel_id("MOD_LOGS")
         if not mod_logs_id:
             return
         mod_logs = self.client.get_channel(int(mod_logs_id))
