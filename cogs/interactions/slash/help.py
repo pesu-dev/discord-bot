@@ -2,7 +2,6 @@ import discord
 import utils.general as ug
 from discord.ext import commands
 from discord import app_commands
-from typing import Optional
 
 
 class HelpEmbeds:
@@ -119,7 +118,7 @@ class HelpView(discord.ui.View):
         self.interaction = interaction
         self.category = category.lower()
         self.page = page
-        self.message: Optional[discord.Message] = None
+        self.message: discord.Message | None = None
         self.embeds = HelpEmbeds().get_embeds(self.category)
         self.update_buttons()
 

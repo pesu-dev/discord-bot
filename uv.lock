@@ -153,8 +153,6 @@ dependencies = [
     { name = "httpx" },
     { name = "pymongo" },
     { name = "python-dotenv" },
-    { name = "typing-extensions" },
-    { name = "ua-generator" },
 ]
 
 [package.metadata]
@@ -163,8 +161,6 @@ requires-dist = [
     { name = "httpx", specifier = "==0.28.1" },
     { name = "pymongo", specifier = "==4.13.2" },
     { name = "python-dotenv", specifier = "==1.1.0" },
-    { name = "typing-extensions", specifier = "==4.13.2" },
-    { name = "ua-generator", specifier = "==2.0.7" },
 ]
 
 [[package]]
@@ -409,24 +405,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/87/a6771e1546d97e7e041b6ae58d80074f81b7d5121207425c964ddf5cfdbd/sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc", size = 20372, upload-time = "2024-02-25T23:20:04.057Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/44/75a9c9421471a6c4805dbf2356f7c181a29c1879239abab1ea2cc8f38b40/sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2", size = 10235, upload-time = "2024-02-25T23:20:01.196Z" },
-]
-
-[[package]]
-name = "typing-extensions"
-version = "4.13.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f6/37/23083fcd6e35492953e8d2aaaa68b860eb422b34627b13f2ce3eb6106061/typing_extensions-4.13.2.tar.gz", hash = "sha256:e6c81219bd689f51865d9e372991c540bda33a0379d5573cddb9a3a23f7caaef", size = 106967, upload-time = "2025-04-10T14:19:05.416Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/54/b1ae86c0973cc6f0210b53d508ca3641fb6d0c56823f288d108bc7ab3cc8/typing_extensions-4.13.2-py3-none-any.whl", hash = "sha256:a439e7c04b49fec3e5d3e2beaa21755cadbbdc391694e28ccdd36ca4a1408f8c", size = 45806, upload-time = "2025-04-10T14:19:03.967Z" },
-]
-
-[[package]]
-name = "ua-generator"
-version = "2.0.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b2/41/dfad4cc9395ae883b4d39e15b995be72cec6e3d3ece846b9a178947ed0f2/ua_generator-2.0.7.tar.gz", hash = "sha256:8106535ef3ffbfe21d12c996a29f9ea4a68046dfc29b3556803bda65070bed5c", size = 26004, upload-time = "2025-05-31T14:24:28.769Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/92/1be8cb5a96490cb8fddaf5b40cf5bff65829361d9cc4f1305a5e780250f8/ua_generator-2.0.7-py3-none-any.whl", hash = "sha256:79cbd328ff4a9f468feee91d60677ca42c59afd0466439a00e1dbf30eedcecea", size = 30290, upload-time = "2025-05-31T14:24:27.449Z" },
 ]
 
 [[package]]

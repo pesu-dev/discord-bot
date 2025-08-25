@@ -1,14 +1,25 @@
 [project]
 name = "discord-bot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Community management Discord Bot for PESU Discord server"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    { name = "Sachin Balasubramanyam", email = "sachinshankar1206@gmail.com" },
+]
+license = { text = "MIT" }
+license-files = [
+    "LICENSE"
+]
 dependencies = [
     "discord-py==2.6.1",
     "httpx==0.28.1",
     "pymongo==4.13.2",
     "python-dotenv==1.1.0",
-    "typing-extensions==4.13.2",
-    "ua-generator==2.0.7",
 ]
+
+[project.urls]
+Homepage = "https://github.com/pesu-dev/discord-bot"
+Repository = "https://github.com/pesu-dev/discord-bot"
+Issues = "https://github.com/pesu-dev/discord-bot/issues"
+"Project Board" = "https://github.com/orgs/pesu-dev/projects/4/"

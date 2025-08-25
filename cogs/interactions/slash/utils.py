@@ -5,7 +5,6 @@ from discord.ext import commands
 import ua_generator
 import json
 from pathlib import Path
-from typing import Optional
 from bot import DiscordBot
 import httpx
 
@@ -199,7 +198,7 @@ class SlashUtils(commands.Cog):
         rolelist="List of roles to count members for, separated by &"
     )
     async def count(
-        self, interaction: discord.Interaction, rolelist: Optional[str] = None
+        self, interaction: discord.Interaction, rolelist: str | None = None
     ):
         await interaction.response.defer()
         if not interaction.guild:
@@ -266,7 +265,7 @@ class SlashUtils(commands.Cog):
     )
     @app_commands.describe(user="The user to get Spotify details for (default: you)")
     async def spotify(
-        self, interaction: discord.Interaction, user: Optional[discord.User] = None
+        self, interaction: discord.Interaction, user: discord.User | None = None
     ):
         await interaction.response.defer()
         if not interaction.guild:
@@ -310,7 +309,7 @@ class SlashUtils(commands.Cog):
     async def addroles_command(
         self,
         interaction: discord.Interaction,
-        channel: Optional[discord.TextChannel] = None,
+        channel: discord.TextChannel | None = None,
     ):
         await interaction.response.defer(ephemeral=True)
         if not ug.has_mod_permissions(interaction.user):
@@ -346,7 +345,7 @@ class SlashUtils(commands.Cog):
         name="pride", description="Flourishes you with the pride of PESU"
     )
     @app_commands.describe(link="The message link to reply with the pride to")
-    async def pride(self, interaction: discord.Interaction, link: Optional[str] = None):
+    async def pride(self, interaction: discord.Interaction, link: str | None = None):
         await interaction.response.send_message(
             "Pride of PESU coming your way...", ephemeral=False
         )
@@ -460,8 +459,8 @@ class SlashUtils(commands.Cog):
     async def faq(
         self,
         interaction: discord.Interaction,
-        category: Optional[str] = None,
-        question: Optional[str] = None,
+        category: str | None = None,
+        question: str | None = None,
     ):
         data = await self.get_data()
 
@@ -561,7 +560,7 @@ class SlashUtils(commands.Cog):
     @app_commands.command(name="reload", description="Reload all cogs or a specific cog")
     @app_commands.describe(cog="The specific cog to reload (leave empty to reload all)")
     async def reload(
-        self, interaction: discord.Interaction, cog: Optional[str] = None
+        self, interaction: discord.Interaction, cog: str | None = None
     ):
         await interaction.response.defer(ephemeral=True)
         

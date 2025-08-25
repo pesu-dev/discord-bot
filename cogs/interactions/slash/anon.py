@@ -4,7 +4,6 @@ from bot import DiscordBot
 from discord import app_commands
 from discord.ext import commands, tasks
 import utils.general as ug
-from typing import Optional
 
 
 class SlashAnon(commands.Cog):
@@ -92,7 +91,7 @@ class SlashAnon(commands.Cog):
         message="The message you want to send", link="Message link you want to reply to"
     )
     async def anon(
-        self, interaction: discord.Interaction, message: str, link: Optional[str] = None
+        self, interaction: discord.Interaction, message: str, link: str | None = None
     ):
         await interaction.response.defer(ephemeral=True)
         userBanCheck = await self.client.anonban_collection.find_one(
@@ -206,8 +205,8 @@ class SlashAnon(commands.Cog):
         self,
         interaction: discord.Interaction,
         link: str,
-        time: Optional[str] = None,
-        reason: Optional[str] = "No reason provided",
+        time: str | None = None,
+        reason: str | None = "No reason provided",
     ):
         await interaction.response.defer(ephemeral=True)
         if not ug.has_mod_permissions(interaction.user):
@@ -429,8 +428,8 @@ class SlashAnon(commands.Cog):
         self,
         interaction: discord.Interaction,
         member: discord.Member,
-        time: Optional[str] = None,
-        reason: Optional[str] = "No reason provided",
+        time: str | None = None,
+        reason: str | None = "No reason provided",
     ):
         await interaction.response.defer(ephemeral=True)
 

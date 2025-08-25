@@ -1,13 +1,11 @@
 import discord
 import datetime as dt
-from typing import Optional
 from bot import DiscordBot
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta
 from discord.utils import utcnow
 import utils.general as ug
-from typing import Union
 
 class SlashMod(commands.Cog):
     def __init__(self, client: DiscordBot):
@@ -216,7 +214,7 @@ class SlashMod(commands.Cog):
     async def echo_prefix(
         self,
         ctx: commands.Context,
-        channel: Union[discord.TextChannel, discord.Thread],
+        channel: discord.TextChannel | discord.Thread,
         *,
         message: str,
     ):
@@ -228,7 +226,10 @@ class SlashMod(commands.Cog):
                 if ctx.message.attachments
                 else None
             )
-            await channel.send(message, file=attachment_to_send)
+            if attachment_to_send:
+                await channel.send(message, file=attachment_to_send)
+            else:
+                await channel.send(message)
         except discord.Forbidden:
             return await ctx.send("Error: I don't have permission to send messages there.")
         except Exception as e:
@@ -238,6 +239,8 @@ class SlashMod(commands.Cog):
             return
 
         mods_logs_id = ug.load_channel_id("MOD_LOGS", logs=True)
+        if not mods_logs_id:
+            return
         mods_logs = ctx.guild.get_channel(mods_logs_id)
         if isinstance(mods_logs, discord.TextChannel):
             echo_embed = discord.Embed(
@@ -265,9 +268,9 @@ class SlashMod(commands.Cog):
     async def echo(
         self,
         interaction: discord.Interaction,
-        channel: Union[discord.TextChannel, discord.Thread],
+        channel: discord.TextChannel | discord.Thread,
         message: str,
-        attachment: Optional[discord.Attachment] = None,
+        attachment: discord.Attachment | None = None,
     ):
         if not ug.has_mod_permissions(interaction.user) and not ug.has_bot_dev_permissions(interaction.user):
             return await interaction.response.send_message(
@@ -764,7 +767,7 @@ class SlashMod(commands.Cog):
     async def lock_channel(
         self,
         interaction: discord.Interaction,
-        channel: Optional[discord.TextChannel] = None,
+        channel: discord.TextChannel | None = None,
         reason: str = "No reason provided",
     ):
         if not ug.has_mod_permissions(interaction.user):
@@ -864,7 +867,7 @@ class SlashMod(commands.Cog):
     async def unlock_channel(
         self,
         interaction: discord.Interaction,
-        channel: Optional[discord.TextChannel] = None,
+        channel: discord.TextChannel | None = None,
     ):
         if not ug.has_mod_permissions(interaction.user):
             await interaction.response.send_message(
