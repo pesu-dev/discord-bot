@@ -84,7 +84,7 @@ class SlashAnon(commands.Cog):
             min_time=86400
             # cache clearing logic
             for key,value in self.anon_cache.items():
-                self.anon_cache[key] = [msg for msg in value if (current_time-msg[1]).total_seconds()<min_time]
+                self.anon_cache[key] = {msg:timestamp for msg,timestamp in value.items() if (current_time-timestamp).total_seconds()<min_time}
 
     @clear_anon_cache_loop.before_loop
     async def before_clear_anon_cache_loop(self):
@@ -190,11 +190,10 @@ class SlashAnon(commands.Cog):
             )
 
         if str(interaction.user.id) not in self.anon_cache:
-            self.anon_cache[str(interaction.user.id)] = []
+            self.anon_cache[str(interaction.user.id)] = {}
 
-        # adds a list which contains the message id as the first element and the time the message was sent as the second element
-        self.anon_cache[str(interaction.user.id)].append([str(anonMessage.id),datetime.datetime.now(datetime.timezone.utc)])
-        
+        # adds a dictionary which contains the message id as the key and the time the message was sent as the value
+        self.anon_cache[str(interaction.user.id)][str(anonMessage.id)] = datetime.datetime.now(datetime.timezone.utc)        
 
     @anon.error
     async def anon_error(
