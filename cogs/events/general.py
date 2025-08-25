@@ -98,7 +98,7 @@ class Events(commands.Cog):
         if message.author.bot:
             return
         
-        if os.getenv("APP_ENV") == "prod" and random.random() <= 0.5: # 50% chance and prod deployment
+        if os.getenv("APP_ENV") == "prod" and random.random() <= 0.2: # 20% chance and prod deployment
             # Special EC Campus keyword patterns. Only check for words, not internal matches
             patterns = [
                 r"\becc\b",
@@ -255,3 +255,4 @@ class Events(commands.Cog):
 
 async def setup(client: DiscordBot):
     await client.add_cog(Events(client))
+
