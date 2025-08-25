@@ -1,5 +1,5 @@
 [project]
-name = "discord-bot"
+name = "pesu-discord-bot"
 version = "0.1.0"
 description = "Community management Discord Bot for PESU Discord server"
 readme = "README.md"
@@ -18,8 +18,39 @@ dependencies = [
     "python-dotenv==1.1.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/pesu-dev/discord-bot"
 Repository = "https://github.com/pesu-dev/discord-bot"
 Issues = "https://github.com/pesu-dev/discord-bot/issues"
 "Project Board" = "https://github.com/orgs/pesu-dev/projects/4/"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 80
+exclude = [".venv", "__pycache__"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "W",    # pycodestyle warnings
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "C90",  # Complexity rules
+    "ANN",  # Annotations rules
+    "TYP",  # Type checking rules
+    "Q000", # Quotation style rules
+    "RET",  # Return type rules
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
