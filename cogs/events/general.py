@@ -98,6 +98,43 @@ class Events(commands.Cog):
         if message.author.bot:
             return
         
+        # Check if this is a reply to an anon message
+        if message.reference and message.reference.message_id:
+            try:
+                replied_message = await message.channel.fetch_message(message.reference.message_id)
+                
+                # Check if the replied message is an anon message (has embed with title "Anon Message")
+                if (replied_message.author == self.client.user and 
+                    replied_message.embeds and 
+                    replied_message.embeds[0].title == "Anon Message"):
+                    
+                    # Find the original anon sender from the anon cog's cache
+                    anon_cog = self.client.get_cog("SlashAnon")
+                    if anon_cog and hasattr(anon_cog, 'anon_cache'):
+                        original_sender_id = None
+                        for user_id, message_ids in anon_cog.anon_cache.items():
+                            if str(replied_message.id) in message_ids:
+                                original_sender_id = user_id
+                                break
+                        
+                        if original_sender_id:
+                            try:
+                                original_sender = await self.client.fetch_user(int(original_sender_id))
+                                if original_sender:
+                                    # Create DM message
+                                    dm_content = f"{message.author.display_name} replied to your anon message\n{message.jump_url}"
+                                    
+                                    # Send DM to original anon sender
+                                    await original_sender.send(dm_content)
+                                        
+                            except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                                # Could not send DM to user
+                                pass
+                                        
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                # Could not fetch the replied message
+                pass
+        
         if os.getenv("APP_ENV") == "prod" and random.random() <= 0.2: # 20% chance and prod deployment
             # Special EC Campus keyword patterns. Only check for words, not internal matches
             patterns = [
