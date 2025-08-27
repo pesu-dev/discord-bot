@@ -133,7 +133,7 @@ class Events(commands.Cog):
                                         
             except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                 # Could not fetch the replied message
-                pass
+                pass 
         
         if os.getenv("APP_ENV") == "prod" and random.random() <= 0.2: # 20% chance and prod deployment
             # Special EC Campus keyword patterns. Only check for words, not internal matches
