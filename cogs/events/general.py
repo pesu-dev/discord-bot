@@ -148,6 +148,7 @@ class Events(commands.Cog):
                                     # )
                                     link_record = await self.client.link_collection.find_one({"userId": str(original_sender.id)})
                                     if not link_record or link_record.get("anon_notifications", True):
+
                                         reply_type = "anon user" if is_current_anon else message.author.display_name
                                         print(f"reply_type: {reply_type}")
                                         # Create DM embed with unsubscribe button
@@ -170,7 +171,7 @@ class Events(commands.Cog):
                                         # )
                                         # is_subscribed = not (subscription_record and subscription_record.get("subscribed") == False)
                                         link_record = await self.client.link_collection.find_one({"userId": str(original_sender.id)})
-                                        is_subscribed = link_record.get("anon_notifications", True) if link_record else True
+                                        is_subscribed = link_record.get("anon_notifications", True) #if link_record else True
 
                                         print(f"link_record: {link_record}")
                                         print(f"is_subscribed: {is_subscribed}")
@@ -199,7 +200,6 @@ class Events(commands.Cog):
                                                 await self.client.link_collection.update_one(
                                                     {"userId": str(original_sender.id)},
                                                     {"$set": {"anon_notifications": new_status}},
-                                                    upsert=True
                                                 )
                                                 
                                                 if new_status:
