@@ -143,10 +143,11 @@ class Events(commands.Cog):
                                 original_sender = await self.client.fetch_user(int(original_sender_id))
                                 
                                 if original_sender:
-                                    subscription_check = await self.client.db["anon_notifications"].find_one(
-                                        {"userId": str(original_sender.id), "subscribed": False}
-                                    )
-                                    if not subscription_check:
+                                    # subscription_check = await self.client.db["anon_notifications"].find_one(
+                                    #     {"userId": str(original_sender.id), "subscribed": False}
+                                    # )
+                                    link_record = await self.client.link_collection.find_one({"userId": str(original_sender.id)})
+                                    if not link_record or link_record.get("anon_notifications", True):
                                         reply_type = "anon user" if is_current_anon else message.author.display_name
                                         print(f"reply_type: {reply_type}")
                                         # Create DM embed with unsubscribe button
@@ -164,12 +165,14 @@ class Events(commands.Cog):
                                         embed.timestamp = discord.utils.utcnow()
                                         
                                         # Check current subscription status to determine button text
-                                        subscription_record = await self.client.db["anon_notifications"].find_one(
-                                            {"userId": str(original_sender.id)}
-                                        )
-                                        is_subscribed = not (subscription_record and subscription_record.get("subscribed") == False)
-                                        
-                                        print(f"subscription_record: {subscription_record}")
+                                        # subscription_record = await self.client.db["anon_notifications"].find_one(
+                                        #     {"userId": str(original_sender.id)}
+                                        # )
+                                        # is_subscribed = not (subscription_record and subscription_record.get("subscribed") == False)
+                                        link_record = await self.client.link_collection.find_one({"userId": str(original_sender.id)})
+                                        is_subscribed = link_record.get("anon_notifications", True) if link_record else True
+
+                                        print(f"link_record: {link_record}")
                                         print(f"is_subscribed: {is_subscribed}")
                                         print(f"Button label: {'Unsubscribe from notifications' if is_subscribed else 'Subscribe to notifications'}")
                                         
@@ -193,9 +196,9 @@ class Events(commands.Cog):
                                                 print(f"user ID: {original_sender.id}, currently_subscribed: {currently_subscribed}")
                                                 # Toggle status
                                                 new_status = not currently_subscribed
-                                                await self.client.db["anon_notifications"].update_one(
+                                                await self.client.link_collection.update_one(
                                                     {"userId": str(original_sender.id)},
-                                                    {"$set": {"subscribed": new_status}},
+                                                    {"$set": {"anon_notifications": new_status}},
                                                     upsert=True
                                                 )
                                                 
