@@ -1,3 +1,4 @@
+from email.mime import message
 import re
 import os
 import random
@@ -95,8 +96,145 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
-            return
+        if message.author.bot and message.author.id != self.client.user.id:
+            # Only process if it's an anon message
+            if not (message.embeds and message.embeds[0].title == "Anon Message"):
+                return
+            else:
+            # Ignore all other bots
+                return
+        
+        print("Testing......")
+        
+        # Check if this is a reply to an anon message
+        if message.reference and message.reference.message_id:
+            try:
+                #print("Testing 2......")
+                replied_message = await message.channel.fetch_message(message.reference.message_id)
+                
+                # Check if the replied message is an anon message (has embed with title "Anon Message")
+                if (replied_message.author == self.client.user and 
+                    replied_message.embeds and 
+                    replied_message.embeds[0].title == "Anon Message"):
+                    #await asyncio.sleep(30) # Slight delay to ensure anon cache is populated
+                    
+                    # Find the original anon sender from the anon cog's cache
+                    anon_cog = self.client.get_cog("SlashAnon")
+                    if anon_cog and hasattr(anon_cog, 'anon_cache'):
+                        original_sender_id = None
+                        current_sender_id = None
+                        
+                        # Find the original sender (person being replied to)
+                        for user_id, messages in anon_cog.anon_cache.items():
+                            if any(str(replied_message.id) == msg["message_id"] for msg in messages):
+                                original_sender_id = user_id
+                                break
+                        
+                        # Check if current message is also anon (bot message with embed)
+                        is_current_anon = (message.author == self.client.user and 
+                                        message.embeds and 
+                                        message.embeds[0].title == "Anon Message")
+                        print(f"is_current_anon: {is_current_anon}")
+                        if is_current_anon:
+                            # Find who sent this anon message
+                            for user_id, messages in anon_cog.anon_cache.items():
+                                if any(str(message.id) == msg["message_id"] for msg in messages):
+                                    current_sender_id = user_id
+                                    break
+                            #print(f"current_sender_id: {current_sender_id}")
+                            print(f"original_sender_id: {original_sender_id}, current_sender_id: {current_sender_id}")
+                        # If we found the original sender and they're different from current sender
+                        if original_sender_id and original_sender_id != current_sender_id:
+                            try:
+                                original_sender = await self.client.fetch_user(int(original_sender_id))
+                                
+                                if original_sender:
+                                    # subscription_check = await self.client.db["anon_notifications"].find_one(
+                                    #     {"userId": str(original_sender.id), "subscribed": False}
+                                    # )
+                                    link_record = await self.client.link_collection.find_one({"userId": str(original_sender.id)})
+                                    if not link_record or link_record.get("anon_notifications", True):
+
+                                        reply_type = "anon user" if is_current_anon else message.author.display_name
+                                        print(f"reply_type: {reply_type}")
+                                        # Create DM embed with unsubscribe button
+                                        embed = discord.Embed(
+                                            title="Reply to Your Anon Message",
+                                            description=f"An {reply_type} replied to your anon message" if is_current_anon else f"{reply_type} replied to your anon message",
+                                            color=discord.Color.blue()
+                                        )
+                                        embed.add_field(
+                                            name="Jump to Reply",
+                                            value=f"[Click here to view the reply]({message.jump_url})",
+                                            inline=False
+                                        )
+                                        embed.set_footer(text="PESU Bot")
+                                        embed.timestamp = discord.utils.utcnow()
+                                        
+                                        # Check current subscription status to determine button text
+                                        # subscription_record = await self.client.db["anon_notifications"].find_one(
+                                        #     {"userId": str(original_sender.id)}
+                                        # )
+                                        # is_subscribed = not (subscription_record and subscription_record.get("subscribed") == False)
+                                        link_record = await self.client.link_collection.find_one({"userId": str(original_sender.id)})
+                                        is_subscribed = link_record.get("anon_notifications", True) #if link_record else True
+
+                                        print(f"link_record: {link_record}")
+                                        print(f"is_subscribed: {is_subscribed}")
+                                        print(f"Button label: {'Unsubscribe from notifications' if is_subscribed else 'Subscribe to notifications'}")
+                                        
+                                        
+                                        # Create toggle button
+                                        view = discord.ui.View()
+                                        toggle_button = discord.ui.Button(
+                                            label="Unsubscribe from notifications" if is_subscribed else "Subscribe to notifications",
+                                            style=discord.ButtonStyle.secondary if is_subscribed else discord.ButtonStyle.primary,
+                                            custom_id=f"toggle_anon_notifications_{original_sender.id}"
+                                        )
+                                        
+                                        
+                                        async def toggle_callback(interaction):
+                                            if interaction.user.id == original_sender.id:
+                                                # Check current status
+                                                current_record = await self.client.db["anon_notifications"].find_one(
+                                                    {"userId": str(original_sender.id)}
+                                                )
+                                                currently_subscribed = not (current_record and current_record.get("subscribed") == False)
+                                                print(f"user ID: {original_sender.id}, currently_subscribed: {currently_subscribed}")
+                                                # Toggle status
+                                                new_status = not currently_subscribed
+                                                await self.client.link_collection.update_one(
+                                                    {"userId": str(original_sender.id)},
+                                                    {"$set": {"anon_notifications": new_status}},
+                                                )
+                                                
+                                                if new_status:
+                                                    await interaction.response.send_message(
+                                                        "✅ You have been subscribed to anon reply notifications.",
+                                                        ephemeral=True
+                                                    )
+                                                else:
+                                                    await interaction.response.send_message(
+                                                        "❌ You have been unsubscribed from anon reply notifications.",
+                                                        ephemeral=True
+                                                    )
+                                            print(f"Toggled subscription for user {original_sender.id} to {new_status}")
+                                        
+                                        toggle_button.callback = toggle_callback
+                                        
+                                        view.add_item(toggle_button)
+                                        
+                                        
+                                        # Send DM to original anon sender
+                                        await original_sender.send(embed=embed, view=view)
+                                        
+                            except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                                # Could not send DM to user
+                                pass
+                                        
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                # Could not fetch the replied message
+                pass
         
         if os.getenv("APP_ENV") == "prod" and random.random() <= 0.2: # 20% chance and prod deployment
             # Special EC Campus keyword patterns. Only check for words, not internal matches
