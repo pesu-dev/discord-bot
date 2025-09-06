@@ -96,9 +96,15 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        #if message.author.bot:
-        #    return
-        #print("Testing......")
+        if message.author.bot and message.author.id != self.client.user.id:
+            # Only process if it's an anon message
+            if not (message.embeds and message.embeds[0].title == "Anon Message"):
+                return
+            else:
+            # Ignore all other bots
+                return
+        
+        print("Testing......")
         
         # Check if this is a reply to an anon message
         if message.reference and message.reference.message_id:
